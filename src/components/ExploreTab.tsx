@@ -79,7 +79,8 @@ const ExploreTab = () => {
   const [contractData, setContractData] = useState<{
     address: string, 
     tags: any[],
-    attestationCount?: number
+    attestationCount?: number,
+    attester?: string
   } | null>(null);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,11 +126,16 @@ const ExploreTab = () => {
       // Extract tags from attestations
       const extractedTags = parseTagsFromAttestations(attestations);
       
+      // Get the attester from the first attestation (assuming all attestations have the same attester)
+      const attester = attestations.length > 0 ? attestations[0].attester : undefined;
+      
       setContractData({
         address: contractAddress,
         tags: extractedTags,
         // Store the raw attestation count for display
-        attestationCount: attestations.length
+        attestationCount: attestations.length,
+        // Store the attester
+        attester
       });
       setTags(extractedTags);
     } catch (err: any) {
@@ -161,17 +167,17 @@ const ExploreTab = () => {
           </p>
         </div>
         <div className="flex gap-2">
-        <input
+          <input
             type="text"
             placeholder="Enter contract address (0x...)"
             value={contractAddress}
             onChange={handleAddressChange}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button 
             onClick={fetchContractTags}
             disabled={isLoading}
-            className="px-4 py-2 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {isLoading ? (
               <span className="flex items-center">
@@ -201,14 +207,14 @@ const ExploreTab = () => {
 
       {contractData && (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="mb-4">
+          <div className="mb-6">
             <h2 className="text-xl font-semibold mb-1 flex items-center">
               <span className="mr-2 text-gray-900">Contract</span>
               <code className="text-sm bg-gray-600 px-2 py-1 rounded">
                 {contractData.address}
               </code>
             </h2>
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-gray-500 mb-4">
               <p>
                 {contractData.attestationCount || 0} attestation{(contractData.attestationCount || 0) !== 1 ? 's' : ''} found
               </p>
@@ -216,10 +222,21 @@ const ExploreTab = () => {
                 {tags.length} extracted tag{tags.length !== 1 ? 's' : ''} 
               </p>
             </div>
+            
+            {/* Attester Information */}
+            {contractData.attester && (
+                <div className="flex items-center px-3 py-1 bg-gray-500 rounded-md border border-gray-200">
+                  <span className="text-sm font-medium text-gray-300 mr-2">Attested by:</span>
+                  <code className="text-sm font-mono text-gray-300">
+                    {contractData.attester.substring(0, 6)}...
+                    {contractData.attester.substring(contractData.attester.length - 4)}
+                  </code>
+                </div>
+              )}
           </div>
           
           {tags.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {Object.entries(groupedTags).map(([category, categoryTags]) => (
                 <div key={category}>
                   <h3 className="text-sm font-medium mb-2 flex items-center text-gray-700">

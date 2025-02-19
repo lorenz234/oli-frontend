@@ -210,7 +210,7 @@ const ExploreTab = () => {
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-1 flex items-center">
               <span className="mr-2 text-gray-900">Contract</span>
-              <code className="text-sm bg-gray-600 px-2 py-1 rounded">
+              <code className="text-sm bg-gray-100 text-gray-500 px-2 py-1 rounded">
                 {contractData.address}
               </code>
             </h2>
@@ -225,9 +225,9 @@ const ExploreTab = () => {
             
             {/* Attester Information */}
             {contractData.attester && (
-                <div className="flex items-center px-3 py-1 bg-gray-500 rounded-md border border-gray-200">
-                  <span className="text-sm font-medium text-gray-300 mr-2">Attested by:</span>
-                  <code className="text-sm font-mono text-gray-300">
+                <div className="flex items-center px-3 py-1 bg-gray-100 rounded-md border border-gray-200">
+                  <span className="text-sm font-medium text-gray-500 mr-2">Attested by:</span>
+                  <code className="text-sm font-mono text-gray-500">
                     {contractData.attester.substring(0, 6)}...
                     {contractData.attester.substring(contractData.attester.length - 4)}
                   </code>

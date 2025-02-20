@@ -296,13 +296,19 @@ const ExploreTab = () => {
                               ? categoryTags.map((tag) => {
                                   // For contract tags, display them in a cleaner format
                                   const [key, value] = tag.name.split(': ');
+                                  
+                                  // Special handling for boolean values
+                                  const displayValue = tag.rawValue === true || tag.rawValue === false 
+                                    ? String(tag.rawValue) // Convert boolean to string
+                                    : tag.rawValue;
+                                    
                                   return (
                                     <div 
                                       key={tag.id}
                                       className="inline-flex items-center px-3 py-1 rounded-md bg-indigo-50 border border-indigo-100"
                                     >
                                       <span className="text-xs font-medium text-gray-500 mr-2">{key}:</span>
-                                      <span className="text-sm text-indigo-700">{tag.rawValue}</span>
+                                      <span className="text-sm text-indigo-700">{displayValue}</span>
                                     </div>
                                   );
                                 })

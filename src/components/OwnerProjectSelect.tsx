@@ -101,7 +101,7 @@ const OwnerProjectSelect = ({
               projects.map((project) => (
                 <Combobox.Option
                   key={project.owner_project}
-                  value={project.display_name}
+                  value={project.owner_project}
                   className={({ active }) =>
                     `relative cursor-default select-none py-2 pl-3 pr-9 ${
                       active ? 'bg-indigo-100 text-black' : 'text-gray-900'

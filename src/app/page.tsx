@@ -99,8 +99,8 @@ const HomePage: FC = () => {
               <Image
                 src="/eth-foundation-logo.png"
                 alt="Ethereum Foundation"
-                width={200}
-                height={100}
+                width={300}
+                height={150}
                 className="object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
                 onClick={() => window.open('https://ethereum.org/', '_blank')}
               />
@@ -109,8 +109,8 @@ const HomePage: FC = () => {
                 <Image
                     src="/growthepie-logo.png"
                     alt="growthepie"
-                    width={200}
-                    height={100}
+                    width={300}
+                    height={150}
                     className="object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
                     onClick={() => window.open('https://growthepie.xyz/', '_blank')}
                 />

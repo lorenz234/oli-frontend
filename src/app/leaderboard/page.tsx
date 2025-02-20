@@ -1,5 +1,6 @@
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable';
 import DonutChart from '@/components/DonutChart';
+import LatestAttestations from '@/components/LatestAttestations';
 
 export default function Home() {
   return (
@@ -7,6 +8,7 @@ export default function Home() {
       <main className="flex-grow py-16 px-4">
         <LeaderboardTable />
         <DonutChart />
+        <LatestAttestations />
       </main>
     </div>
   );

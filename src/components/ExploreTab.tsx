@@ -21,7 +21,7 @@ const extractChainId = (attestation: Attestation): string | undefined => {
     const fields = JSON.parse(attestation.decodedDataJson);
     const chainIdField = fields.find((field: any) => field.name === 'chain_id');
     if (chainIdField && chainIdField.value && chainIdField.value.value) {
-      return chainIdField.value.value.replace('eip155:', '');
+      return chainIdField.value.value;
     }
     return undefined;
   } catch (e) {
@@ -231,108 +231,133 @@ const ExploreTab = () => {
             </div>
           </div>
           
-          <div className="space-y-6">
-            {attestations.map((attestation, index) => (
-              <div 
-                key={`${attestation.timeCreated}-${index}`} 
-                className="border border-gray-200 rounded-lg p-4"
-              >
-                <div className="mb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center mb-2">
-                      <div className="flex items-center px-3 py-1 bg-gray-100 rounded-md border border-gray-200">
-                        <span className="text-sm font-medium text-gray-500 mr-2">Attested by:</span>
-                        <code className="text-sm font-mono text-gray-500">
-                          {attestation.attester.substring(0, 6)}...
-                          {attestation.attester.substring(attestation.attester.length - 4)}
-                        </code>
-                      </div>
-                      
-                      {attestation.chainId && (
-                        <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-full">
-                          Chain {attestation.chainId}
-                        </span>
-                      )}
-                      
-                      {attestation.isOffchain && (
-                        <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-600 rounded-full">
-                          Offchain
-                        </span>
-                      )}
-                    </div>
+          <div className="space-y-8">
+            {(() => {
+              // Group attestations by chain
+              const attestationsByChain: Record<string, ParsedAttestation[]> = {};
+              
+              attestations.forEach(attestation => {
+                const chainKey = attestation.chainId || 'Unknown Chain';
+                if (!attestationsByChain[chainKey]) {
+                  attestationsByChain[chainKey] = [];
+                }
+                attestationsByChain[chainKey].push(attestation);
+              });
+              
+              // Sort chains by name for consistent display
+              return Object.entries(attestationsByChain)
+                .sort(([chainA], [chainB]) => chainA.localeCompare(chainB))
+                .map(([chainId, chainAttestations]) => (
+                  <div key={chainId} className="border-t pt-4 first:border-t-0 first:pt-0">
+                    <h3 className="text-lg font-medium mb-3 flex items-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-50 text-blue-700 mr-2">
+                        chain_id: {chainId}
+                      </span>
+                      <span className="text-gray-500 text-sm font-normal">
+                        {chainAttestations.length} attestation{chainAttestations.length !== 1 ? 's' : ''}
+                      </span>
+                    </h3>
                     
-                    <div className="text-sm text-gray-500">
-                      {formatTimestamp(attestation.timeCreated)}
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500 mt-1">
-                    {attestation.tags.length} tag{attestation.tags.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                
-                {attestation.tags.length > 0 ? (
-                  <div className="space-y-2">
-                    {(() => {
-                      const groupedTags = attestation.tags.reduce<{[key: string]: any[]}>((acc, tag) => {
-                        const category = tag.category || 'Uncategorized';
-                        if (!acc[category]) {
-                          acc[category] = [];
-                        }
-                        acc[category].push(tag);
-                        return acc;
-                      }, {});
-                    
-                      return Object.entries(groupedTags).map(([category, categoryTags]) => (
-                        <div key={category}>
-                          <h3 className="text-sm font-medium mb-2 flex items-center text-gray-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
-                            </svg>
-                            {category}
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            {category === 'Contract Tag' 
-                              ? categoryTags.map((tag) => {
-                                  // For contract tags, display them in a cleaner format
-                                  const [key, value] = tag.name.split(': ');
-                                  
-                                  // Special handling for boolean values
-                                  const displayValue = tag.rawValue === true || tag.rawValue === false 
-                                    ? String(tag.rawValue) // Convert boolean to string
-                                    : tag.rawValue;
-                                    
-                                  return (
-                                    <div 
-                                      key={tag.id}
-                                      className="inline-flex items-center px-3 py-1 rounded-md bg-indigo-50 border border-indigo-100"
-                                    >
-                                      <span className="text-xs font-medium text-gray-500 mr-2">{key}:</span>
-                                      <span className="text-sm text-indigo-700">{displayValue}</span>
-                                    </div>
-                                  );
-                                })
-                              : categoryTags.map((tag) => (
-                                  <span 
-                                    key={tag.id}
-                                    className="px-2 py-1 text-xs bg-indigo-50 text-indigo-700 rounded-full"
-                                  >
-                                    {tag.name}
+                    <div className="space-y-4">
+                      {chainAttestations.map((attestation, index) => (
+                        <div 
+                          key={`${attestation.timeCreated}-${index}`} 
+                          className="border border-gray-200 rounded-lg p-4"
+                        >
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center mb-2">
+                                <div className="flex items-center px-3 py-1 bg-gray-100 rounded-md border border-gray-200">
+                                  <span className="text-sm font-medium text-gray-500 mr-2">Attested by:</span>
+                                  <code className="text-sm font-mono text-gray-500">
+                                    {attestation.attester.substring(0, 6)}...
+                                    {attestation.attester.substring(attestation.attester.length - 4)}
+                                  </code>
+                                </div>
+                                
+                                {attestation.isOffchain && (
+                                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-600 rounded-full">
+                                    Offchain
                                   </span>
-                                ))
-                            }
+                                )}
+                              </div>
+                              
+                              <div className="text-sm text-gray-500">
+                                {formatTimestamp(attestation.timeCreated)}
+                              </div>
+                            </div>
+                            
+                            <p className="text-xs text-gray-500 mt-1">
+                              {attestation.tags.length} tag{attestation.tags.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
+                          
+                          {attestation.tags.length > 0 ? (
+                            <div className="space-y-2">
+                              {(() => {
+                                const groupedTags = attestation.tags.reduce<{[key: string]: any[]}>((acc, tag) => {
+                                  const category = tag.category || 'Uncategorized';
+                                  if (!acc[category]) {
+                                    acc[category] = [];
+                                  }
+                                  acc[category].push(tag);
+                                  return acc;
+                                }, {});
+                              
+                                return Object.entries(groupedTags).map(([category, categoryTags]) => (
+                                  <div key={category}>
+                                    <h3 className="text-sm font-medium mb-2 flex items-center text-gray-700">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+                                      </svg>
+                                      {category}
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                      {category === 'Contract Tag' 
+                                        ? categoryTags.map((tag) => {
+                                            // For contract tags, display them in a cleaner format
+                                            const [key, value] = tag.name.split(': ');
+                                            
+                                            // Special handling for boolean values
+                                            const displayValue = tag.rawValue === true || tag.rawValue === false 
+                                              ? String(tag.rawValue) // Convert boolean to string
+                                              : tag.rawValue;
+                                              
+                                            return (
+                                              <div 
+                                                key={tag.id}
+                                                className="inline-flex items-center px-3 py-1 rounded-md bg-indigo-50 border border-indigo-100"
+                                              >
+                                                <span className="text-xs font-medium text-gray-500 mr-2">{key}:</span>
+                                                <span className="text-sm text-indigo-700">{displayValue}</span>
+                                              </div>
+                                            );
+                                          })
+                                        : categoryTags.map((tag) => (
+                                            <span 
+                                              key={tag.id}
+                                              className="px-2 py-1 text-xs bg-indigo-50 text-indigo-700 rounded-full"
+                                            >
+                                              {tag.name}
+                                            </span>
+                                          ))
+                                      }
+                                    </div>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          ) : (
+                            <div className="bg-yellow-50 border border-yellow-100 rounded-md p-3 text-yellow-800">
+                              <p className="text-sm">No tags could be extracted from this attestation</p>
+                            </div>
+                          )}
                         </div>
-                      ));
-                    })()}
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="bg-yellow-50 border border-yellow-100 rounded-md p-3 text-yellow-800">
-                    <p className="text-sm">No tags could be extracted from this attestation</p>
-                  </div>
-                )}
-              </div>
-            ))}
+                ));
+            })()}
           </div>
         </div>
       )}

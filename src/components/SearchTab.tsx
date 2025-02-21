@@ -105,7 +105,7 @@ interface ParsedAttestation {
   chainId?: string;
 }
 
-const ExploreTab = () => {
+const SearchTab = () => {
   const [contractAddress, setContractAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -168,15 +168,15 @@ const ExploreTab = () => {
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-1 text-gray-900">Check a Contract</h2>
+          <h2 className="text-xl font-semibold mb-1 text-gray-900">Search Tags</h2>
           <p className="text-sm text-gray-500">
-            Enter a contract address to view all attestations where this address is the recipient
+            Enter an address to view all attested tags for this address
           </p>
         </div>
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Enter contract address (0x...)"
+            placeholder="Enter address (0x...)"
             value={contractAddress}
             onChange={handleAddressChange}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -365,4 +365,4 @@ const ExploreTab = () => {
   );
 };
 
-export default ExploreTab;
+export default SearchTab;

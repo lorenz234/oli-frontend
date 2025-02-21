@@ -38,11 +38,11 @@ const Navigation = () => {
                 </svg>
                 Home
               </Link>
-
+              
               <Link
-                href="/leaderboard"
+                href="/search"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  pathname === '/leaderboard' 
+                  pathname === '/search'
                     ? 'border-indigo-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }`}
@@ -58,12 +58,12 @@ const Navigation = () => {
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
                     strokeWidth={2} 
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
                   />
                 </svg>
-                Leaderboard
+                Search
               </Link>
-              
+
               <Link
                 href="/attest"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
@@ -86,13 +86,13 @@ const Navigation = () => {
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Create Attestation
+                Attest
               </Link>
-              
+
               <Link
-                href="/explore"
+                href="/analytics"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  pathname === '/explore'
+                  pathname === '/analytics' 
                     ? 'border-indigo-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }`}
@@ -108,11 +108,12 @@ const Navigation = () => {
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
                     strokeWidth={2} 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
                   />
                 </svg>
-                Search Contract
+                Analytics
               </Link>
+
             </div>
           </div>
           <div className="flex items-center">

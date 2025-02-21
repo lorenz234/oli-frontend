@@ -4,7 +4,7 @@ import type { FC } from 'react';
 
 const Footer: FC = () => {
   return (
-    <footer className="bg-white py-8 px-4">
+    <footer className="bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto grid grid-cols-3 items-center">
         <div className="flex items-center">
           <img 

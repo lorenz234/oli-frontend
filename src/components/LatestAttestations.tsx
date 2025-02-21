@@ -76,7 +76,7 @@ const LatestAttestations: React.FC = () => {
                 equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
               }
             },
-            take: 10,
+            take: 5,
             orderBy: [
               {
                 timeCreated: "desc"

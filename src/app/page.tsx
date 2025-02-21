@@ -92,7 +92,7 @@ const HomePage: FC = () => {
     <div className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
     <div className="max-w-7xl mx-auto text-center py-12 px-4 sm:py-12 sm:px-6 lg:px-8">
         <h2 className="text-3xl font-extrabold text-white mb-12">
-        <span className="block">Start Using Open Labels</span>
+        <span className="block">Start Using the OLI Label Pool</span>
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -148,7 +148,7 @@ const HomePage: FC = () => {
                 </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-indigo-600">
-                Create Attestation
+                Create Attestations
             </h3>
             <p className="text-gray-600">
                 Contribute to the ecosystem by creating attestations for contracts you know about.

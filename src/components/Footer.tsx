@@ -10,7 +10,8 @@ const Footer: FC = () => {
           <img 
             src="/oli-logo.png" 
             alt="Open Labels Initiative" 
-            className="h-14 w-auto"
+            className="h-14 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
+            onClick={() => window.location.href = '/'}
           />
         </div>
         <div className="flex items-center justify-center gap-6">

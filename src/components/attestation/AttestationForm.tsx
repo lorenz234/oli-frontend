@@ -196,7 +196,6 @@ const AttestationForm = () => {
     .forEach(([key, value]) => {
       tagsObject[key] = value;
     });
-
     console.log('Tags object:', tagsObject);
 
     const encodedData = schemaEncoder.encodeData([

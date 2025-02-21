@@ -168,7 +168,7 @@ const SearchTab = () => {
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-1 text-gray-900">Search Tags</h2>
+          <h2 className="text-xl font-semibold mb-1 text-gray-900">Search Tags for an Address</h2>
           <p className="text-sm text-gray-500">
             Enter an address to view all attested tags for this address
           </p>

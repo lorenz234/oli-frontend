@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
-import OwnerProjectSelect from '../OwnerProjectSelect';
-import ConfirmationModal from '../ConfirmationModal';
-import InputWithCheck from '../InputWithCheck';
-import FormLabel from '../FormLabel';
-import { CATEGORIES } from '../../constants/categories';
+import OwnerProjectSelect from './OwnerProjectSelect';
+import ConfirmationModal from './ConfirmationModal';
+import InputWithCheck from './InputWithCheck';
+import FormLabel from './FormLabel';
+import { CATEGORIES } from '../constants/categories';
 
 // Types
 type Chain = 'ethereum' | 'base' | 'optimism' | 'arbitrum';

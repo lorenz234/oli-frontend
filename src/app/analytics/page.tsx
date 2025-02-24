@@ -1,4 +1,4 @@
-import LeaderboardTable from '@/components/leaderboard/LeaderboardTable';
+import LeaderboardTable from '@/components/LeaderboardTable';
 import DonutChart from '@/components/DonutChart';
 import LatestAttestations from '@/components/LatestAttestations';
 

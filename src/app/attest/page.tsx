@@ -9,7 +9,7 @@ export default function AttestPage() {
         <div className="p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Bulk Attestation Options</h2>
           <p className="text-gray-700 mb-4">
-            Need to create multiple attestations? You can bulk attest onchain or offchain using our Python and TypeScript scripts.
+            Need to create multiple attestations? You can bulk attest onchain or offchain using our Python and TypeScript scripts. More tooling is in the making!
           </p>
           <Link 
             href="https://github.com/openlabelsinitiative/OLI/tree/main/2_label_pool/tooling_write" 

@@ -24,7 +24,7 @@ export default function AttestPage() {
       
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
         <div className="flex justify-between items-center py-6 px-8">
-          <h2 className="text-2xl font-bold text-gray-900">Assign Tags to a Single Address by Attesting</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Label an Address by Attesting</h2>
         </div>
         <AttestationForm />
       </div>

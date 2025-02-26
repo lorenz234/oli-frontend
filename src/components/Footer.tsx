@@ -7,12 +7,7 @@ const Footer: FC = () => {
     <footer className="bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto grid grid-cols-3 items-center">
         <div className="flex items-center">
-          <img 
-            src="/oli-logo.png" 
-            alt="Open Labels Initiative" 
-            className="h-14 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
-            onClick={() => window.location.href = '/'}
-          />
+          
         </div>
         <div className="flex items-center justify-center gap-6">
           <a 

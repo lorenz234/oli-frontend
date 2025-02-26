@@ -51,7 +51,7 @@ const HomePage: FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900">
-              The 3 Pillars of OLI
+              Three Pillars of OLI
             </h2>
           </div>
           <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-3">
@@ -107,7 +107,7 @@ const HomePage: FC = () => {
     <div className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
     <div className="max-w-7xl mx-auto text-center py-12 px-4 sm:py-12 sm:px-6 lg:px-8">
         <h2 className="text-3xl font-extrabold text-white mb-12">
-        <span className="block">Start Using the OLI Label Pool</span>
+        <span className="block">Using the OLI Label Pool</span>
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

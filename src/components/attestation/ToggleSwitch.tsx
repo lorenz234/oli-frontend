@@ -19,7 +19,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ isActive, onToggle }) => {
         }`}
       >
         {/* Text that moves with the slider */}
-        <span className="font-bold text-gray-600">
+        <span className="text-gray-600">
           {isActive ? 'Advanced' : 'Simple'}
         </span>
       </div>

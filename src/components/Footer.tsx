@@ -12,7 +12,7 @@ const Footer: FC = () => {
             <img 
               src="/oli-logo.png" 
               alt="Open Labels Initiative" 
-              className="h-12 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
+              className="h-8 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200 md:h-12"
               onClick={() => window.location.href = '/'}
             />
         </div>

@@ -10,5 +10,5 @@ export const TAG_DESCRIPTIONS = {
     is_proxy: "Is the contract a proxy contract?",
     owner_project: "The project that owns the contract or eoa. Link to project registry https://github.com/opensource-observer/oss-directory.",
     usage_category: "The release version of the dApp (i.e. 2 for Uniswap v2 contracts).",
-    version
+    version: "The release version of the dApp (i.e. 2 for Uniswap v2 contracts).",
   } as const;

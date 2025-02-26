@@ -349,7 +349,7 @@ const AttestationForm = () => {
         />
       )}
       
-      <div className="flex justify-end p-4">
+      <div className="flex justify-center">
         <ToggleSwitch 
           isActive={formMode === 'advanced'} 
           onToggle={toggleFormMode} 

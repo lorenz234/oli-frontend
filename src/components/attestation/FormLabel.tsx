@@ -1,7 +1,7 @@
 // components/FormLabel.tsx
 import React from 'react';
-import Tooltip from './Tooltip';
-import { TAG_DESCRIPTIONS } from '../constants/tagDescriptions';
+import Tooltip from '../attestation/Tooltip';
+import { TAG_DESCRIPTIONS } from '../../constants/tagDescriptions';
 
 interface FormLabelProps {
   htmlFor: string;

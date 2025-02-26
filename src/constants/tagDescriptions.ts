@@ -1,3 +1,5 @@
+import { version } from "os";
+
 // constants/tagDescriptions.ts
 export const TAG_DESCRIPTIONS = {
     chain: "The chain that the contract is deployed on.",
@@ -7,5 +9,6 @@ export const TAG_DESCRIPTIONS = {
     is_factory_contract: "Is the address a factory contract? Does it have functions which are able to deploy another contract?",
     is_proxy: "Is the contract a proxy contract?",
     owner_project: "The project that owns the contract or eoa. Link to project registry https://github.com/opensource-observer/oss-directory.",
-    usage_category: "The category of usage for the contract.",
+    usage_category: "The release version of the dApp (i.e. 2 for Uniswap v2 contracts).",
+    version
   } as const;

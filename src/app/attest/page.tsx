@@ -1,12 +1,12 @@
 // app/attest/page.tsx
-import AttestationForm from '@/components/AttestationForm'
+import AttestationForm from '@/components/attestation/AttestationForm'
 import Link from 'next/link'
 
 export default function AttestPage() {
   return (
     <main className="max-w-3xl mx-auto p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] mb-8">
-        <div className="p-8">
+        <div className="py-6 px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Bulk Attestation Options</h2>
           <p className="text-gray-700 mb-4">
             Need to create multiple attestations? You can bulk attest onchain or offchain using our Python and TypeScript scripts. More tooling is in the making!
@@ -23,7 +23,7 @@ export default function AttestPage() {
       </div>
       
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
-        <div className="flex justify-between items-center p-8">
+        <div className="flex justify-between items-center py-6 px-8">
           <h2 className="text-2xl font-bold text-gray-900">Assign Tags to a Single Address by Attesting</h2>
         </div>
         <AttestationForm />

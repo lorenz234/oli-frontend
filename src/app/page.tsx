@@ -59,7 +59,7 @@ const HomePage: FC = () => {
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-lg font-medium text-gray-900">Data Model</h3>
                 <p className="mt-2 text-base text-gray-500">
-                  We all speak the same language when it comes to labels. This framework allows us to easily sync labels between different databases and align on the valuesets.
+                  We all speak the same language when it comes to labels. This framework allows us to easily sync labels between different databases and align on the taxonomy.
                 </p>
                 <a href="https://github.com/openlabelsinitiative/OLI/tree/main/1_data_model" target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center text-indigo-600 hover:text-indigo-500">
                   Learn more

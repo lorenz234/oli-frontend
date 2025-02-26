@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ethers } from 'ethers';
 import { Wallet, LogOut, ChevronDown } from 'lucide-react';
+// Import shared ethereum type
+import '../types/ethereum';
 
 const WalletConnect = () => {
   const [account, setAccount] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+    } else {
+      setAccount('');
+    }
+    setIsOpen(false);
+  };
 
   useEffect(() => {
     checkWalletConnection();
@@ -16,8 +26,8 @@ const WalletConnect = () => {
     }
 
     // Close dropdown when clicking outside
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -31,19 +41,10 @@ const WalletConnect = () => {
     };
   }, []);
 
-  const handleAccountsChanged = (accounts) => {
-    if (accounts.length > 0) {
-      setAccount(accounts[0]);
-    } else {
-      setAccount('');
-    }
-    setIsOpen(false);
-  };
-
   const checkWalletConnection = async () => {
     if (window.ethereum) {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
         if (accounts.length > 0) {
           setAccount(accounts[0]);
         }
@@ -61,7 +62,7 @@ const WalletConnect = () => {
 
     setIsConnecting(true);
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
       setAccount(accounts[0]);
     } catch (error) {
       console.error('Error connecting wallet:', error);
@@ -82,7 +83,7 @@ const WalletConnect = () => {
     }
   };
 
-  const formatAddress = (address) => {
+  const formatAddress = (address: string): string => {
     if (!address) return '';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };

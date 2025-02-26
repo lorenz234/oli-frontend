@@ -20,6 +20,24 @@ const LATEST_ATTESTATIONS_QUERY = gql`
   }
 `;
 
+// Define types for attestation data
+interface Attestation {
+  id: string;
+  attester: string;
+  recipient: string;
+  decodedDataJson: string;
+  timeCreated: string;
+  txid: string;
+  revoked: boolean;
+  revocationTime: string | null;
+  isOffchain: boolean;
+}
+
+// Define a type for the parsed tags
+interface Tags {
+  [key: string]: string | boolean | number | null;
+}
+
 // Helper function to format timestamp
 const formatTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
@@ -32,36 +50,48 @@ const formatTimestamp = (timestamp: number): string => {
   });
 };
 
+// Define a type for the field data structure
+interface Field {
+  name: string;
+  type: string;
+  value: {
+    type: string;
+    value: string;
+  };
+}
+
 // Helper function to extract chain ID from attestation
-const extractChainId = (attestation: any): string | undefined => {
+const extractChainId = (attestation: Attestation): string | undefined => {
   try {
-    const fields = JSON.parse(attestation.decodedDataJson);
-    const chainIdField = fields.find((field: any) => field.name === 'chain_id');
+    const fields = JSON.parse(attestation.decodedDataJson) as Field[];
+    const chainIdField = fields.find((field) => field.name === 'chain_id');
     if (chainIdField?.value?.value) {
       return chainIdField.value.value.replace('eip155:', '');
     }
     return undefined;
-  } catch (e) {
+  } catch {
+    // Ignore parsing errors and return undefined
     return undefined;
   }
 };
 
 // Helper function to parse tags from attestation
-const parseTagsFromAttestation = (attestation: any) => {
+const parseTagsFromAttestation = (attestation: Attestation): Tags | null => {
   try {
-    const fields = JSON.parse(attestation.decodedDataJson);
-    const tagsField = fields.find((field: any) => field.name === 'tags_json');
+    const fields = JSON.parse(attestation.decodedDataJson) as Field[];
+    const tagsField = fields.find((field) => field.name === 'tags_json');
     if (tagsField?.value?.value) {
       return JSON.parse(tagsField.value.value);
     }
     return null;
-  } catch (e) {
+  } catch {
+    // Ignore parsing errors and return null
     return null;
   }
 };
 
 const LatestAttestations: React.FC = () => {
-  const [attestations, setAttestations] = useState<any[]>([]);
+  const [attestations, setAttestations] = useState<Attestation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,9 +116,9 @@ const LatestAttestations: React.FC = () => {
         });
 
         setAttestations(data.attestations);
-      } catch (err) {
-        console.error('Error fetching attestations:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch attestations');
+      } catch (error) {
+        console.error('Error fetching attestations:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch attestations');
       } finally {
         setLoading(false);
       }
@@ -167,7 +197,14 @@ const LatestAttestations: React.FC = () => {
                     >
                       <span className="text-xs font-medium text-gray-500 mr-2">{key}:</span>
                       <span className="text-sm text-indigo-700">
-                        {typeof value === 'boolean' ? String(value) : value}
+                        {value === null 
+                          ? 'null'
+                          : typeof value === 'boolean'
+                            ? String(value)
+                            : typeof value === 'object'
+                              ? JSON.stringify(value)
+                              : String(value)
+                        }
                       </span>
                     </div>
                   ))}

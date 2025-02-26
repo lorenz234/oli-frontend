@@ -5,6 +5,24 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { gql } from '@apollo/client';
 import client from '@/lib/apollo-client';
 
+// Define the data structure for the chart
+interface ChartDataItem {
+  name: string;
+  value: number;
+}
+
+// Define the structure of the GraphQL response
+interface AttestationGroup {
+  isOffchain: boolean;
+  _count: {
+    _all: number;
+  };
+}
+
+interface QueryResponse {
+  groupByAttestation: AttestationGroup[];
+}
+
 const DISTRIBUTION_QUERY = gql`
   query GroupByAttestation($by: [AttestationScalarFieldEnum!]!, $where: AttestationWhereInput, $orderBy: [AttestationOrderByWithAggregationInput!]) {
     groupByAttestation(by: $by, where: $where, orderBy: $orderBy) {
@@ -17,14 +35,14 @@ const DISTRIBUTION_QUERY = gql`
 `;
 
 const DonutChart = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [data, setData] = useState<ChartDataItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: queryData } = await client.query({
+        const { data: queryData } = await client.query<QueryResponse>({
           query: DISTRIBUTION_QUERY,
           variables: {
             by: ["isOffchain"],
@@ -43,7 +61,7 @@ const DonutChart = () => {
           }
         });
 
-        const chartData = queryData.groupByAttestation.map(item => ({
+        const chartData = queryData.groupByAttestation.map((item: AttestationGroup) => ({
           name: item.isOffchain ? 'Offchain' : 'Onchain',
           value: item._count._all
         }));
@@ -51,7 +69,7 @@ const DonutChart = () => {
         setData(chartData);
       } catch (err) {
         console.error('Error fetching distribution data:', err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setLoading(false);
       }
@@ -97,11 +115,11 @@ const DonutChart = () => {
               dataKey="value"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value) => new Intl.NumberFormat().format(value)}
+              formatter={(value: number) => new Intl.NumberFormat().format(value)}
               contentStyle={{ 
                 backgroundColor: 'white',
                 border: 'none',
@@ -112,9 +130,10 @@ const DonutChart = () => {
             <Legend 
               verticalAlign="bottom" 
               height={36}
-              formatter={(value, entry) => {
-                const { payload } = entry;
-                const count = payload ? payload.value : 0;
+              formatter={(value: string, entry) => {
+                // Define proper type for recharts entry object
+                const payload = entry && entry.payload ? entry.payload : { value: 0 };
+                const count = payload.value || 0;
                 return `${value} (${new Intl.NumberFormat().format(count)})`;
               }}
             />

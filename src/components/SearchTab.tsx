@@ -3,6 +3,24 @@
 import React, { useState } from 'react';
 import { fetchAttestationsByContract, Attestation } from '@/services/attestationService';
 
+// Define interfaces for the field structure in attestations
+interface AttestationField {
+  name: string;
+  value: {
+    value: string | number | boolean | null;
+    type?: string;
+  };
+}
+
+// Define interface for tag objects
+interface Tag {
+  id: string;
+  name: string;
+  category: string;
+  createdAt: number;
+  rawValue: string | number | boolean | null;
+}
+
 // Helper function to format timestamp to readable date
 const formatTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
@@ -18,25 +36,25 @@ const formatTimestamp = (timestamp: number): string => {
 // Helper function to extract chain ID from attestation
 const extractChainId = (attestation: Attestation): string | undefined => {
   try {
-    const fields = JSON.parse(attestation.decodedDataJson);
-    const chainIdField = fields.find((field: any) => field.name === 'chain_id');
+    const fields = JSON.parse(attestation.decodedDataJson) as AttestationField[];
+    const chainIdField = fields.find((field) => field.name === 'chain_id');
     if (chainIdField && chainIdField.value && chainIdField.value.value) {
-      return chainIdField.value.value;
+      return String(chainIdField.value.value);
     }
     return undefined;
-  } catch (e) {
-    console.warn('Could not extract chain ID:', e);
+  } catch (error) {
+    console.warn('Could not extract chain ID:', error);
     return undefined;
   }
 };
 
 // Helper function to parse tag data from attestation data
-const parseTagsFromAttestation = (attestation: Attestation & { timeCreated: number | string }) => {
-  const tags: Record<string, any>[] = [];
+const parseTagsFromAttestation = (attestation: Attestation & { timeCreated: number | string }): Tag[] => {
+  const tags: Tag[] = [];
   
   try {
     // Parse the decodedDataJson string which contains an array of fields
-    const fields = JSON.parse(attestation.decodedDataJson);
+    const fields = JSON.parse(attestation.decodedDataJson) as AttestationField[];
     
     if (!Array.isArray(fields)) {
       console.warn('Expected decodedDataJson to be an array of fields');
@@ -49,20 +67,20 @@ const parseTagsFromAttestation = (attestation: Attestation & { timeCreated: numb
     if (tagsField && tagsField.value && typeof tagsField.value.value === 'string') {
       try {
         // Parse the nested JSON string in the tags_json field
-        const tagsObject = JSON.parse(tagsField.value.value);
+        const tagsObject = JSON.parse(tagsField.value.value) as Record<string, string | number | boolean | null>;
         
         // Convert each key-value pair in the tags object to a tag
         Object.entries(tagsObject).forEach(([key, value]) => {
           tags.push({
             id: `${attestation.txid || attestation.timeCreated}-${key}`,
-            name: `${key}: ${value}`,
+            name: `${key}: ${String(value)}`,
             category: 'Contract Tag',
             createdAt: Number(attestation.timeCreated),
             rawValue: value
           });
         });
-      } catch (e) {
-        console.warn('Could not parse tags_json value:', e);
+      } catch (error) {
+        console.warn('Could not parse tags_json value:', error);
       }
     } else {
       // If no tags_json field found, extract other fields as tags
@@ -89,8 +107,8 @@ const parseTagsFromAttestation = (attestation: Attestation & { timeCreated: numb
         }
       });
     }
-  } catch (e) {
-    console.error('Error parsing attestation data:', e);
+  } catch (error) {
+    console.error('Error parsing attestation data:', error);
   }
   
   return tags;
@@ -101,8 +119,12 @@ interface ParsedAttestation {
   timeCreated: number;
   txid: string;
   isOffchain: boolean;
-  tags: Record<string, any>[];
+  tags: Tag[];
   chainId?: string;
+}
+
+interface GroupedTags {
+  [category: string]: Tag[];
 }
 
 const SearchTab = () => {
@@ -153,8 +175,8 @@ const SearchTab = () => {
       });
       
       setAttestations(parsedAttestations);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while fetching data');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred while fetching data');
       setAttestations([]);
     } finally {
       setIsLoading(false);
@@ -295,7 +317,7 @@ const SearchTab = () => {
                           {attestation.tags.length > 0 ? (
                             <div className="space-y-2">
                               {(() => {
-                                const groupedTags = attestation.tags.reduce<{[key: string]: any[]}>((acc, tag) => {
+                                const groupedTags = attestation.tags.reduce<GroupedTags>((acc, tag) => {
                                   const category = tag.category || 'Uncategorized';
                                   if (!acc[category]) {
                                     acc[category] = [];
@@ -316,12 +338,16 @@ const SearchTab = () => {
                                       {category === 'Contract Tag' 
                                         ? categoryTags.map((tag) => {
                                             // For contract tags, display them in a cleaner format
-                                            const [key, value] = tag.name.split(': ');
+                                            // Note: Using split to extract key in a cleaner way
+                                            const keyParts = tag.name.split(':');
+                                            const key = keyParts[0].trim();
                                             
                                             // Special handling for boolean values
                                             const displayValue = tag.rawValue === true || tag.rawValue === false 
                                               ? String(tag.rawValue) // Convert boolean to string
-                                              : tag.rawValue;
+                                              : tag.rawValue === null
+                                                ? 'null'
+                                                : String(tag.rawValue);
                                               
                                             return (
                                               <div 

@@ -3,17 +3,17 @@ import React from 'react';
 import { ethers } from 'ethers';
 import OwnerProjectSelect from '../attestation/OwnerProjectSelect';
 import UsageCategorySelect from './UsageCategorySelect';
-import { CATEGORIES } from '../../constants/categories';
 
 // Types
 export type Chain = 'ethereum' | 'base' | 'optimism' | 'arbitrum';
 export type FormMode = 'simple' | 'advanced';
-export type FieldType = 'select' | 'text' | 'radio' | 'custom' ;
+export type FieldType = 'select' | 'text' | 'radio' | 'custom';
 export type FieldVisibility = 'simple' | 'advanced' | 'both';
+export type FieldValue = string | boolean | undefined;
 
 export interface ComponentProps {
-  value: any;
-  onChange: (value: any) => void;
+  value: FieldValue;
+  onChange: (value: FieldValue) => void;
 }
 
 export interface FormField {
@@ -23,7 +23,7 @@ export interface FormField {
   tooltipKey: string;
   visibility: FieldVisibility;
   options?: { value: string; label: string }[];
-  validator?: (value: any) => string;
+  validator?: (value: FieldValue) => string;
   placeholder?: string;
   required?: boolean;
   component?: (props: ComponentProps) => React.ReactNode;
@@ -37,18 +37,19 @@ export const CHAINS: { id: Chain; name: string; caip2: string }[] = [
 ];
 
 // Form field validators
-export const validateAddress = (address: string) => {
+export const validateAddress = (address: FieldValue): string => {
   if (!address) return 'Address is required';
   try {
-    ethers.getAddress(address);
+    ethers.getAddress(address as string);
     return '';
-  } catch (error) {
+  } catch {
     return 'Invalid EVM address';
   }
 };
 
-export const validateContractName = (name: string) => {
-  if (name && name.length > 40) return 'Contract name must be 40 characters or less';
+export const validateContractName = (name: FieldValue): string => {
+  if (name && typeof name === 'string' && name.length > 40) 
+    return 'Contract name must be 40 characters or less';
   return '';
 };
 
@@ -67,14 +68,14 @@ export const initialFormState = {
 // Define component render functions without JSX directly in TS file
 export const renderOwnerProjectSelect = (props: ComponentProps) => {
   return React.createElement(OwnerProjectSelect, {
-    value: props.value,
+    value: props.value as string,
     onChange: props.onChange
   });
 };
 
 export const renderUsageCategorySelect = (props: ComponentProps) => {
   return React.createElement(UsageCategorySelect, {
-    value: props.value,
+    value: props.value as string,
     onChange: props.onChange
   });
 };

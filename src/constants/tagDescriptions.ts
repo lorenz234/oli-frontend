@@ -1,5 +1,3 @@
-import { version } from "os";
-
 // constants/tagDescriptions.ts
 export const TAG_DESCRIPTIONS = {
     chain: "The chain that the contract is deployed on.",

@@ -14,18 +14,54 @@ import {
   FormField, 
   FormMode 
 } from './formFields';  // Import named exports directly
+import { TAG_DESCRIPTIONS } from '../../constants/tagDescriptions';
+// Import shared ethereum type
+import '../../types/ethereum';
 
-const EAS_CONTRACT_ADDRESS = "0x4200000000000000000000000000000000000021";
+// Define FieldValue type to match what validator expects
+type FieldValue = string | boolean | undefined;
+
+const EAS_CONTRACT_ADDRESS = "0x4200000000000000000000000000000021";
 const SCHEMA_UID = "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68";
+
+// Define types for error and notification states
+interface ErrorState {
+  [key: string]: string;
+}
+
+interface NotificationState {
+  message: string;
+  type: 'success' | 'error';
+}
+
+interface ConfirmationDataState {
+  chain_id: string;
+  address: string;
+  tagsObject: Record<string, unknown>;
+}
+
+// Create a FormData interface with an index signature to allow string indexing
+interface FormData {
+  chain_id: string;
+  address: string;
+  contract_name: string;
+  owner_project: string;
+  usage_category: string;
+  is_contract: boolean | undefined;
+  is_factory_contract: boolean | undefined;
+  is_proxy: boolean | undefined;
+  version?: string;
+  [key: string]: string | boolean | undefined | unknown; // Allow unknown values too
+}
 
 const AttestationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<NotificationState | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [confirmationData, setConfirmationData] = useState(null);
+  const [confirmationData, setConfirmationData] = useState<ConfirmationDataState | null>(null);
   const [formMode, setFormMode] = useState<FormMode>('simple');
-  const [formData, setFormData] = useState(initialFormState);
-  const [errors, setErrors] = useState({});
+  const [formData, setFormData] = useState<FormData>(initialFormState);
+  const [errors, setErrors] = useState<ErrorState>({});
 
   // Filter fields based on current form mode
   const getVisibleFields = () => {
@@ -40,7 +76,7 @@ const AttestationForm = () => {
     }
   };
 
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
   };
 
@@ -49,7 +85,7 @@ const AttestationForm = () => {
     const schemaEncoder = new SchemaEncoder('string chain_id,string tags_json');
       
     // Create tags_json object
-    const tagsObject: { [key: string]: any } = {};
+    const tagsObject: Record<string, unknown> = {};
 
     Object.entries(formData)
     .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
@@ -77,9 +113,9 @@ const AttestationForm = () => {
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: '0x2105' }], // 0x2105 is hex for 8453 (Base)
         });
-      } catch (switchError) {
+      } catch (switchError: unknown) {
         // This error code indicates that the chain has not been added to MetaMask
-        if (switchError.code === 4902) {
+        if (switchError && typeof switchError === 'object' && 'code' in switchError && switchError.code === 4902) {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
@@ -103,8 +139,11 @@ const AttestationForm = () => {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      // Initialize EAS SDK
-      const eas = new EAS(EAS_CONTRACT_ADDRESS, provider);
+      // Initialize EAS SDK with the contract address as a string
+      // For EAS SDK 2.7.0, the constructor takes a string address
+      const eas = new EAS(EAS_CONTRACT_ADDRESS);
+      
+      // Connect the signer separately 
       eas.connect(signer);
 
       /// Submit the attestation
@@ -112,7 +151,7 @@ const AttestationForm = () => {
         schema: SCHEMA_UID,
         data: {
           recipient: formData.address,
-          expirationTime: 0n,
+          expirationTime: BigInt(0), // Using BigInt() instead of 0n literal
           revocable: true,
           data: encodedData,
         },
@@ -128,7 +167,10 @@ const AttestationForm = () => {
 
     } catch (error) {
       console.error('Error submitting attestation:', error);
-      showNotification(error.message || "Failed to submit attestation", "error");
+      showNotification(
+        error instanceof Error ? error.message : "Failed to submit attestation", 
+        "error"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -138,12 +180,14 @@ const AttestationForm = () => {
     e.preventDefault();
     
     // Validate all visible fields
-    const newErrors = {};
+    const newErrors: ErrorState = {};
     let hasError = false;
     
     getVisibleFields().forEach(field => {
       if (field.validator) {
-        const error = field.validator(formData[field.id]);
+        // Type assertion to ensure the validator gets the right type
+        const fieldValue = formData[field.id] as FieldValue;
+        const error = field.validator(fieldValue);
         if (error) {
           newErrors[field.id] = error;
           hasError = true;
@@ -164,7 +208,7 @@ const AttestationForm = () => {
     }
   
     // Create tags object for preview
-    const tagsObject = {};
+    const tagsObject: Record<string, unknown> = {};
     Object.entries(formData)
       .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
         (value !== undefined && value !== ''))
@@ -187,8 +231,13 @@ const AttestationForm = () => {
     await submitAttestation();
   };
 
-  const handleChange = (fieldId: string, value: any) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
+  const handleChange = (fieldId: string, value: unknown) => {
+    // Safe way to update the form data with proper typing
+    setFormData(prev => {
+      const updated = { ...prev };
+      updated[fieldId] = value;
+      return updated;
+    });
     
     // Clear errors when user changes input
     if (errors[fieldId]) {
@@ -204,15 +253,23 @@ const AttestationForm = () => {
     setFormMode(prev => prev === 'simple' ? 'advanced' : 'simple');
   };
 
+  // Define a Field type that correctly types the tooltipKey
+  interface TypedField extends Omit<FormField, 'tooltipKey'> {
+    tooltipKey: keyof typeof TAG_DESCRIPTIONS;
+  }
+
   const renderField = (field: FormField) => {
     const commonInputClassName = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-400 bg-gray-50 py-2 pl-3";
+    
+    // Type assertion to correctly type the tooltipKey
+    const typedField = field as unknown as TypedField;
     
     return (
       <div key={field.id} className="mb-6">
         <FormLabel
           htmlFor={field.id}
           label={field.label}
-          tooltipKey={field.tooltipKey}
+          tooltipKey={typedField.tooltipKey}
         />
         
         <InputWithCheck
@@ -225,7 +282,7 @@ const AttestationForm = () => {
               type="text"
               id={field.id}
               name={field.id}
-              value={formData[field.id] || ''}
+              value={formData[field.id] as string || ''}
               onChange={(e) => handleChange(field.id, e.target.value)}
               placeholder={field.placeholder}
               className={commonInputClassName}
@@ -236,12 +293,12 @@ const AttestationForm = () => {
             <select
               id={field.id}
               name={field.id}
-              value={formData[field.id] || ''}
+              value={formData[field.id] as string || ''}
               onChange={(e) => handleChange(field.id, e.target.value)}
               required={field.required}
               className={commonInputClassName}
             >
-              {field.options.map(option => (
+              {field.options?.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -251,7 +308,7 @@ const AttestationForm = () => {
           
           {field.type === 'radio' && (
             <div className="flex gap-4 mt-1">
-              {field.options.map(option => (
+              {field.options?.map(option => (
                 <div className="flex items-center" key={option.value}>
                   <input
                     type="radio"
@@ -272,8 +329,8 @@ const AttestationForm = () => {
           
           {field.type === 'custom' && field.component && (
             field.component({
-              value: formData[field.id],
-              onChange: (value) => handleChange(field.id, value)
+              value: formData[field.id] as FieldValue,
+              onChange: (value: unknown) => handleChange(field.id, value)
             })
           )}
         </InputWithCheck>
@@ -323,12 +380,14 @@ const AttestationForm = () => {
         </div>
       </form>
       
+      {confirmationData && (
       <ConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleConfirmSubmission}
         data={confirmationData}
       />
+      )}
     </>
   );
 };

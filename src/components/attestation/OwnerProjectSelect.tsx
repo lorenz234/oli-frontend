@@ -1,9 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+// Removed unused Search import
 import { Combobox } from '@headlessui/react';
 import Image from 'next/image';
+
+// Define a type for the raw project item from the API
+type RawProjectItem = [
+  string, // owner_project
+  string, // display_name
+  string | null, // description
+  string | null, // main_github
+  string | null, // twitter
+  string | null, // website
+  string | null, // logo_path
+  string | null, // sub_category
+  string | null  // main_category
+];
 
 type Project = {
   owner_project: string;
@@ -41,8 +54,8 @@ const OwnerProjectSelect = ({
         const response = await fetch('https://api.growthepie.xyz/v1/labels/projects.json');
         const rawData = await response.json();
         
-        // Transform the data structure
-        const transformedProjects = rawData.data.data.map((item: any[]) => ({
+        // Transform the data structure with proper typing
+        const transformedProjects = rawData.data.data.map((item: RawProjectItem) => ({
           owner_project: item[0],
           display_name: item[1],
           description: item[2],
@@ -55,7 +68,7 @@ const OwnerProjectSelect = ({
         }));
 
         // Filter based on search term
-        const filteredProjects = transformedProjects.filter(project => 
+        const filteredProjects = transformedProjects.filter((project:Project) => 
           project.display_name.toLowerCase().includes(query.toLowerCase()) ||
           project.owner_project.toLowerCase().includes(query.toLowerCase())
         );
@@ -108,12 +121,12 @@ const OwnerProjectSelect = ({
                     }`
                   }
                 >
-                  {({ active, selected }) => (
+                  {({ selected }) => (
                     <div className="flex items-center space-x-3">                      
                         <div className="flex-shrink-0 w-5 h-5 relative">
                         {project.logo_path && (
                           <Image
-                            src={getLogoUrl(project.logo_path)}
+                            src={getLogoUrl(project.logo_path) || ''}
                             alt={`${project.display_name} logo`}
                             width={20}
                             height={20}

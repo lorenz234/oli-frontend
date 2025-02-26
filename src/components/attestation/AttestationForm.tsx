@@ -54,6 +54,7 @@ interface FormData {
   [key: string]: string | boolean | undefined | unknown; // Allow unknown values too
 }
 
+
 const AttestationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<NotificationState | null>(null);

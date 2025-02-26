@@ -147,6 +147,8 @@ const SearchTab = () => {
       setError('Please enter a contract address');
       return;
     }
+    
+    console.log("teeest", process.env.NEXT_PUBLIC_GRAPHQL_URL);
 
     setIsLoading(true);
     setError('');

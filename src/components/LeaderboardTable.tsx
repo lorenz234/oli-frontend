@@ -16,6 +16,8 @@ interface EnsNames {
   [key: string]: string | null;
 }
 
+const ETH_NODE_URL="https://mainnet.gateway.tenderly.co"
+
 const ATTESTATION_QUERY = gql`
   query GroupByAttestation($by: [AttestationScalarFieldEnum!]!, $where: AttestationWhereInput, $orderBy: [AttestationOrderByWithAggregationInput!], $take: Int) {
     groupByAttestation(by: $by, where: $where, orderBy: $orderBy, take: $take) {
@@ -69,7 +71,7 @@ const LeaderboardTable: React.FC = () => {
 
   const resolveEnsNames = async (attesters: Attestation[]) => {
     try {
-        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ETH_NODE_URL);
+        const provider = new ethers.JsonRpcProvider(ETH_NODE_URL);
       
       const ensPromises = attesters.map(async (item) => {
         try {

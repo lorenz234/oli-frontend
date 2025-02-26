@@ -97,7 +97,7 @@ const WalletConnect = () => {
       >
         <Wallet className="w-4 h-4" />
         <span className="text-sm font-medium">
-          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+          {isConnecting ? 'Connecting...' : 'Connect'}
         </span>
       </button>
     );

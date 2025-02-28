@@ -489,7 +489,7 @@ const BulkAttestationForm: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'bulk_attestation_template.csv');
+    link.setAttribute('download', 'oli_bulk_attest_export.csv');
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -509,7 +509,7 @@ const BulkAttestationForm: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'bulk_attestation_template.csv');
+    link.setAttribute('download', 'oli_bulk_attest_template.csv');
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

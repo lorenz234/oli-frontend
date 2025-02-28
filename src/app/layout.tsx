@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import './globals.css';
 import { Metadata } from 'next';
+import { Analytics } from "@vercel/analytics/react"
 
 // Define default metadata
 export const metadata: Metadata = {
@@ -46,6 +47,7 @@ export default function RootLayout({
           <Navigation />
           <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
             {children}
+            <Analytics />
           </div>
           <Footer />
         </Providers>

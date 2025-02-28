@@ -6,13 +6,16 @@ import BulkConfirmationModal from './BulkConfirmationModal';
 import { CATEGORIES } from '../../constants/categories';
 import { Trash2, Plus, Upload, Download, Save } from 'lucide-react';
 
+// Import RequestArguments type if needed
+// import { RequestArguments } from '../../types/ethereum';
+
 // Get all valid category IDs
 const VALID_CATEGORY_IDS = CATEGORIES.flatMap(mainCategory => 
   mainCategory.categories.map(category => category.category_id)
 );
 
 // Create a mapping of category IDs to their display info
-const CATEGORY_MAP = {};
+const CATEGORY_MAP: { [key: string]: { name: string; description: string; mainCategory: string } } = {};
 CATEGORIES.forEach(mainCategory => {
   mainCategory.categories.forEach(category => {
     CATEGORY_MAP[category.category_id] = {
@@ -35,13 +38,48 @@ const CHAIN_OPTIONS = [
   { value: 'eip155:42161', label: 'Arbitrum One' },
 ];
 
+// Types definitions
+interface RowData {
+  chain_id: string;
+  address: string;
+  contract_name: string;
+  owner_project: string;
+  usage_category: string;
+  is_contract: string;
+}
+
+interface ConfirmationData {
+  chain_id: string;
+  address: string;
+  tagsObject: { [key: string]: string };
+}
+
+interface NotificationType {
+  message: string;
+  type: 'success' | 'error' | 'warning';
+}
+
+interface AttestationResult {
+  address: string;
+  success: boolean;
+  uid: string;
+}
+
+interface ColumnDefinition {
+  id: keyof RowData;
+  name: string;
+  required: boolean;
+  validator?: (value: string) => string | null;
+  needsCustomValidation?: boolean;
+}
+
 // Column definition for our table
-const COLUMNS = [
+const COLUMNS: ColumnDefinition[] = [
   { 
     id: 'chain_id', 
     name: 'Chain', 
     required: true,
-    validator: (value) => {
+    validator: (value: string) => {
       return CHAIN_OPTIONS.some(option => option.value === value) ? null : 'Invalid chain value';
     }
   },
@@ -49,7 +87,7 @@ const COLUMNS = [
     id: 'address', 
     name: 'Address', 
     required: true,
-    validator: (value) => {
+    validator: (value: string) => {
       try {
         ethers.getAddress(value);
         return null;
@@ -71,7 +109,7 @@ const COLUMNS = [
     id: 'usage_category', 
     name: 'Usage Category', 
     required: false,
-    validator: (value) => {
+    validator: (value: string) => {
       return !value || VALID_CATEGORY_IDS.includes(value) ? null : 'Invalid category';
     }
   },
@@ -79,14 +117,14 @@ const COLUMNS = [
     id: 'is_contract', 
     name: 'Is Contract', 
     required: false,
-    validator: (value) => {
+    validator: (value: string) => {
       return value === '' || value === 'true' || value === 'false' ? null : 'Must be true or false';
     }
   },
 ];
 
 // Define initial empty row
-const EMPTY_ROW = {
+const EMPTY_ROW: RowData = {
   chain_id: '', 
   address: '',
   contract_name: '',
@@ -95,16 +133,16 @@ const EMPTY_ROW = {
   is_contract: '',
 };
 
-const BulkAttestationForm = () => {
-  const [rows, setRows] = useState([{ ...EMPTY_ROW }]);
-  const [errors, setErrors] = useState({});
+const BulkAttestationForm: React.FC = () => {
+  const [rows, setRows] = useState<RowData[]>([{ ...EMPTY_ROW }]);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<NotificationType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [confirmationData, setConfirmationData] = useState(null);
-  const [validProjects, setValidProjects] = useState([]);
+  const [confirmationData, setConfirmationData] = useState<ConfirmationData[] | null>(null);
+  const [validProjects, setValidProjects] = useState<string[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Fetch valid projects on component mount
   useEffect(() => {
@@ -117,7 +155,7 @@ const BulkAttestationForm = () => {
         // Extract project IDs from the response (assuming the format is the same as in OwnerProjectSelect)
         if (data && data.data && data.data.data) {
           // The first item in each array is the project ID
-          const projectIds = data.data.data.map(item => item[0]);
+          const projectIds = data.data.data.map((item: any[]) => item[0]);
           setValidProjects(projectIds);
         }
       } catch (error) {
@@ -137,7 +175,7 @@ const BulkAttestationForm = () => {
   };
 
   // Delete a row by index
-  const deleteRow = (index) => {
+  const deleteRow = (index: number) => {
     if (rows.length === 1) {
       // Keep at least one row, just clear it
       setRows([{ ...EMPTY_ROW }]);
@@ -147,7 +185,7 @@ const BulkAttestationForm = () => {
   };
 
   // Update a specific field in a row
-  const updateRow = (index, field, value) => {
+  const updateRow = (index: number, field: keyof RowData, value: string) => {
     const newRows = [...rows];
     newRows[index] = { ...newRows[index], [field]: value };
     setRows(newRows);
@@ -162,7 +200,7 @@ const BulkAttestationForm = () => {
 
   // Validate all rows before submission
   const validateRows = () => {
-    const newErrors = {};
+    const newErrors: { [key: string]: string } = {};
     let isValid = true;
 
     rows.forEach((row, index) => {
@@ -203,7 +241,7 @@ const BulkAttestationForm = () => {
   };
 
   // Show notification
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
     setNotification({ message, type });
   };
 
@@ -217,7 +255,7 @@ const BulkAttestationForm = () => {
     // Create an array of data for each row
     return validRows.map(row => {
       // Extract tags for this row
-      const tagsObject = {};
+      const tagsObject: { [key: string]: string } = {};
       Object.entries(row)
         .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && value)
         .forEach(([key, value]) => {
@@ -233,20 +271,20 @@ const BulkAttestationForm = () => {
   };
 
   // Handle submission request
-  const handleSubmissionRequest = (e) => {
+  const handleSubmissionRequest = (e: React.FormEvent<HTMLButtonElement>): void => {
     e.preventDefault();
-    
+
     if (!validateRows()) {
       return;
     }
 
     // Filter out empty rows
-    const validRows = rows.filter(row => row.address.trim() !== '');
+    const validRows = rows.filter((row: RowData) => row.address.trim() !== '');
     if (validRows.length === 0) {
       showNotification("Please add at least one valid address", "error");
       return;
     }
-    
+
     // Check if we exceed the maximum allowed number of attestations
     if (validRows.length > 30) {
       showNotification(`You can only submit up to 30 attestations at once. You currently have ${validRows.length} valid rows.`, "error");
@@ -259,7 +297,7 @@ const BulkAttestationForm = () => {
     }
 
     // Prepare confirmation data and open modal
-    const modalData = prepareConfirmationData();
+    const modalData: ConfirmationData[] = prepareConfirmationData();
     setConfirmationData(modalData);
     setIsModalOpen(true);
   };
@@ -271,13 +309,20 @@ const BulkAttestationForm = () => {
     setIsSubmitting(true);
     
     try {
+      // Check if ethereum is available
+      if (!window.ethereum) {
+        showNotification("Please connect your wallet first", "error");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Switch to Base network first
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: '0x2105' }], // 0x2105 is hex for 8453 (Base)
         });
-      } catch (switchError) {
+      } catch (switchError: any) {
         // This error code indicates that the chain has not been added to MetaMask
         if (switchError.code === 4902) {
           await window.ethereum.request({
@@ -304,14 +349,21 @@ const BulkAttestationForm = () => {
       const signer = await provider.getSigner();
       
       // Initialize EAS SDK
-      const eas = new EAS(EAS_CONTRACT_ADDRESS, provider);
+      const eas = new EAS(EAS_CONTRACT_ADDRESS, provider as unknown as any);
       eas.connect(signer);
 
       // Use multiAttest to submit all attestations in a single transaction
       const schemaEncoder = new SchemaEncoder('string chain_id,string tags_json');
       
       // Prepare attestation data for multiAttest
-      const attestationsData = [];
+      interface AttestationData {
+        recipient: string;
+        expirationTime: bigint;
+        revocable: boolean;
+        data: string;
+      }
+      
+      const attestationsData: AttestationData[] = [];
       
       // Filter valid rows again to be safe
       const validRows = rows.filter(row => row.address.trim() !== '');
@@ -319,7 +371,7 @@ const BulkAttestationForm = () => {
       for (const row of validRows) {
         
         // Create tags_json object
-        const tagsObject = {};
+        const tagsObject: { [key: string]: string } = {};
         Object.entries(row)
           .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && value)
           .forEach(([key, value]) => {
@@ -361,7 +413,7 @@ const BulkAttestationForm = () => {
       console.log("Transaction receipt:", tx.receipt);
       
       // Create results array for user feedback
-      const results = attestationUIDs.map((uid, index) => ({
+      const results: AttestationResult[] = attestationUIDs.map((uid: string, index: number) => ({
         address: attestationsData[index].recipient,
         success: true,
         uid: uid
@@ -376,7 +428,7 @@ const BulkAttestationForm = () => {
         setRows([{ ...EMPTY_ROW }]);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting attestations:', error);
       showNotification(error.message || "Failed to submit attestations", "error");
     } finally {
@@ -385,19 +437,24 @@ const BulkAttestationForm = () => {
   };
 
   // Handle CSV import
-  const handleImportCSV = (e) => {
-    const file = e.target.files[0];
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (event: ProgressEvent<FileReader>) => {
       try {
-        const csv = event.target.result;
+        const csv = event.target?.result as string;
+        if (!csv) {
+          showNotification("Failed to read CSV file", "error");
+          return;
+        }
+        
         const lines = csv.split('\n');
         const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
         
         // Map CSV headers to our expected fields
-        const fieldMap = {};
+        const fieldMap: { [key: number]: keyof RowData } = {};
         headers.forEach((header, index) => {
           const field = COLUMNS.find(col => 
             col.id.toLowerCase() === header || 
@@ -409,9 +466,9 @@ const BulkAttestationForm = () => {
         });
         
         // Parse rows
-        const newRows = [];
-        const validationIssues = [];
-        const rowValidation = {}; // Track which rows have validation issues for highlighting
+        const newRows: RowData[] = [];
+        const validationIssues: string[] = [];
+        const rowValidation: { [key: string]: { [key: string]: string } } = {}; // Track which rows have validation issues for highlighting
         
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
@@ -480,7 +537,7 @@ const BulkAttestationForm = () => {
           setRows(newRows);
           
           // Set validation errors to highlight invalid fields
-          const newErrors = {};
+          const newErrors: { [key: string]: string } = {};
           Object.entries(rowValidation).forEach(([rowIndex, fields]) => {
             Object.entries(fields).forEach(([field, errorMessage]) => {
               newErrors[`${rowIndex}-${field}`] = errorMessage;
@@ -507,7 +564,9 @@ const BulkAttestationForm = () => {
       }
       
       // Reset the file input so the same file can be imported again
-      fileInputRef.current.value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     };
     reader.readAsText(file);
   };
@@ -556,7 +615,9 @@ const BulkAttestationForm = () => {
 
   // Trigger file input click
   const triggerFileInput = () => {
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   return (
@@ -564,7 +625,7 @@ const BulkAttestationForm = () => {
       {notification && (
         <Notification
           message={notification.message}
-          type={notification.type}
+          type={notification.type as "error" | "success"}
           onClose={() => setNotification(null)}
         />
       )}
@@ -814,7 +875,7 @@ const BulkAttestationForm = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleBulkSubmit}
-        data={confirmationData}
+        data={confirmationData || []}
         chainOptions={CHAIN_OPTIONS}
       />
     </div>

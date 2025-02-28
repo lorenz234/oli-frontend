@@ -328,14 +328,14 @@ const AttestationForm = () => {
         />
       )}
 
-      <div className="flex justify-center">
+      <div className="flex justify-end px-6 pt-6">
         <ToggleSwitch 
           isActive={formMode === 'advanced'} 
           onToggle={toggleFormMode} 
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 p-6 pr-10">
+      <form onSubmit={handleSubmit} className="space-y-4 pl-6 pb-6 pr-12">
         {getVisibleFields().map(renderField)}
 
         {/* Submit Button */}

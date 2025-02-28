@@ -47,10 +47,10 @@ export default function RootLayout({
           <Navigation />
           <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
             {children}
-            <Analytics />
           </div>
           <Footer />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );

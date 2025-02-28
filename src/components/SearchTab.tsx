@@ -144,19 +144,20 @@ const SearchTab = () => {
   };
 
   const fetchContractAttestations = async () => {
-    if (!contractAddress.trim()) {
+    // Trim whitespace from input before validating
+    const trimmedAddress = contractAddress.trim();
+    
+    if (!trimmedAddress) {
       setError('Please enter a contract address');
       return;
     }
-    
-    console.log("teeest", process.env.NEXT_PUBLIC_GRAPHQL_URL);
 
     setIsLoading(true);
     setError('');
     
     try {
-      // Fetch attestations from the GraphQL API
-      const rawAttestations = await fetchAttestationsByContract(contractAddress);
+      // Fetch attestations using the trimmed address
+      const rawAttestations = await fetchAttestationsByContract(trimmedAddress);
       
       if (rawAttestations.length === 0) {
         setError('No attestations found for this address as recipient');
@@ -238,7 +239,7 @@ const SearchTab = () => {
             <h2 className="text-xl font-semibold mb-1 flex items-center">
               <span className="mr-2 text-gray-900">Contract</span>
               <code className="text-sm bg-gray-100 text-gray-500 px-2 py-1 rounded">
-                {contractAddress}
+                {contractAddress.trim()}
               </code>
             </h2>
             <div className="flex justify-between text-sm text-gray-500 mb-4">

@@ -1,14 +1,13 @@
 // components/attestation/BulkAttestationForm.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { EAS, NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
-import { ethers } from 'ethers';
+import { NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
 import Notification from './Notification';
 import BulkConfirmationModal from './BulkConfirmationModal';
 import { Trash2, Plus, Upload, Download, Save } from 'lucide-react';
 
 // Import shared constants and utilities
 import { CHAIN_OPTIONS } from '../../constants/chains';
-import { SCHEMA_UID, SCHEMA_DEFINITION } from '../../constants/eas';
+import { SCHEMA_UID } from '../../constants/eas';
 import { VALID_CATEGORY_IDS, CATEGORY_MAP } from '../../constants/categories';
 import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
 import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';

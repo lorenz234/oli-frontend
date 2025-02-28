@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ethers } from 'ethers';
 import ConfirmationModal from '../attestation/ConfirmationModal';
 import InputWithCheck from '../attestation/InputWithCheck';
 import FormLabel from '../attestation/FormLabel';
@@ -47,7 +46,7 @@ const AttestationForm = () => {
     }
   };
 
-  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+  const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setNotification({ message, type });
   };
 

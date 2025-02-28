@@ -1,57 +1,24 @@
-// components/attestation/formFields.ts
-
+// src/constants/formFields.ts
 import React from 'react';
-import { ethers } from 'ethers';
-import OwnerProjectSelect from '../attestation/OwnerProjectSelect';
-import UsageCategorySelect from './UsageCategorySelect';
+import OwnerProjectSelect from '../components/attestation/OwnerProjectSelect';
+import UsageCategorySelect from '../components/attestation/UsageCategorySelect';
+import { FormField, FieldValue } from '../types/attestation';
+import { validateAddress, validateContractName } from '../utils/validation';
+import { CHAINS } from './chains';
 
-// Types
-export type Chain = 'ethereum' | 'base' | 'optimism' | 'arbitrum';
-export type FormMode = 'simple' | 'advanced';
-export type FieldType = 'select' | 'text' | 'radio' | 'custom';
-export type FieldVisibility = 'simple' | 'advanced' | 'both';
-export type FieldValue = string | boolean | undefined;
-
-export interface ComponentProps {
-  value: FieldValue;
-  onChange: (value: FieldValue) => void;
-}
-
-export interface FormField {
-  id: string;
-  label: string;
-  type: FieldType;
-  tooltipKey: string;
-  visibility: FieldVisibility;
-  options?: { value: string; label: string }[];
-  validator?: (value: FieldValue) => string;
-  placeholder?: string;
-  required?: boolean;
-  component?: (props: ComponentProps) => React.ReactNode;
-}
-
-export const CHAINS: { id: Chain; name: string; caip2: string }[] = [
-  { id: 'ethereum', name: 'Ethereum', caip2: 'eip155:1' },
-  { id: 'base', name: 'Base', caip2: 'eip155:8453' },
-  { id: 'optimism', name: 'OP Mainnet', caip2: 'eip155:10' },
-  { id: 'arbitrum', name: 'Arbitrum One', caip2: 'eip155:42161' },
-];
-
-// Form field validators
-export const validateAddress = (address: FieldValue): string => {
-  if (!address) return 'Address is required';
-  try {
-    ethers.getAddress(address as string);
-    return '';
-  } catch {
-    return 'Invalid EVM address';
-  }
+// Define component render functions without JSX directly in TS file
+export const renderOwnerProjectSelect = (props: { value: FieldValue; onChange: (value: FieldValue) => void }) => {
+  return React.createElement(OwnerProjectSelect, {
+    value: props.value as string,
+    onChange: props.onChange
+  });
 };
 
-export const validateContractName = (name: FieldValue): string => {
-  if (name && typeof name === 'string' && name.length > 40) 
-    return 'Contract name must be 40 characters or less';
-  return '';
+export const renderUsageCategorySelect = (props: { value: FieldValue; onChange: (value: FieldValue) => void }) => {
+  return React.createElement(UsageCategorySelect, {
+    value: props.value as string,
+    onChange: props.onChange
+  });
 };
 
 // Define initial form state based on field definitions
@@ -64,21 +31,6 @@ export const initialFormState = {
   is_contract: undefined,
   is_factory_contract: undefined,
   is_proxy: undefined,
-};
-
-// Define component render functions without JSX directly in TS file
-export const renderOwnerProjectSelect = (props: ComponentProps) => {
-  return React.createElement(OwnerProjectSelect, {
-    value: props.value as string,
-    onChange: props.onChange
-  });
-};
-
-export const renderUsageCategorySelect = (props: ComponentProps) => {
-  return React.createElement(UsageCategorySelect, {
-    value: props.value as string,
-    onChange: props.onChange
-  });
 };
 
 // Define form fields with metadata

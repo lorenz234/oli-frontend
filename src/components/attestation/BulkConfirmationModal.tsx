@@ -1,3 +1,5 @@
+// components/attestation/BulkConfirmationModal.tsx
+
 import React from 'react';
 
 interface BulkConfirmationModalProps {

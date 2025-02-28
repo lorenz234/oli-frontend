@@ -1,4 +1,5 @@
 // constants/tagDescriptions.ts
+
 export const TAG_DESCRIPTIONS = {
     chain: "The chain that the contract is deployed on.",
     contract_name: "This tag refers to the fundamental descriptor that provides a clear and immediate understanding of an address's purpose or role. It should offer a straightforward one-word detailed definition into the functionality of the address. For example, the Uniswap router contract would have the contract_name = 'router'.",

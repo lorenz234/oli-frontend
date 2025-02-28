@@ -1,3 +1,5 @@
+// components/attestation/ConfirmationModal.tsx
+
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, data }:{isOpen:boolean, onClose: () => void, onConfirm: () => void, data: { chain_id: string, address: string, tagsObject: object }}) => {
     if (!isOpen) return null;
   

@@ -1,4 +1,5 @@
-// components/Tooltip.tsx
+// components/attestation/Tooltip.tsx
+
 import React from 'react';
 
 interface TooltipProps {

@@ -1,42 +1,18 @@
+// components/attestation/BulkAttestationForm.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { EAS, SchemaEncoder, NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
+import { EAS, NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from 'ethers';
 import Notification from './Notification';
 import BulkConfirmationModal from './BulkConfirmationModal';
-import { CATEGORIES } from '../../constants/categories';
 import { Trash2, Plus, Upload, Download, Save } from 'lucide-react';
 
-// Import RequestArguments type if needed
-// import { RequestArguments } from '../../types/ethereum';
-
-// Get all valid category IDs
-const VALID_CATEGORY_IDS = CATEGORIES.flatMap(mainCategory => 
-  mainCategory.categories.map(category => category.category_id)
-);
-
-// Create a mapping of category IDs to their display info
-const CATEGORY_MAP: { [key: string]: { name: string; description: string; mainCategory: string } } = {};
-CATEGORIES.forEach(mainCategory => {
-  mainCategory.categories.forEach(category => {
-    CATEGORY_MAP[category.category_id] = {
-      name: category.name,
-      description: category.description,
-      mainCategory: mainCategory.main_category_name
-    };
-  });
-});
-
-// Constants from your existing application
-const EAS_CONTRACT_ADDRESS = "0x4200000000000000000000000000000000000021";
-const SCHEMA_UID = "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68";
-
-// Default chain options
-const CHAIN_OPTIONS = [
-  { value: 'eip155:1', label: 'Ethereum' },
-  { value: 'eip155:8453', label: 'Base' },
-  { value: 'eip155:10', label: 'OP Mainnet' },
-  { value: 'eip155:42161', label: 'Arbitrum One' },
-];
+// Import shared constants and utilities
+import { CHAIN_OPTIONS } from '../../constants/chains';
+import { SCHEMA_UID, SCHEMA_DEFINITION } from '../../constants/eas';
+import { VALID_CATEGORY_IDS, CATEGORY_MAP } from '../../constants/categories';
+import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
+import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
+import { NotificationType, ConfirmationData } from '../../types/attestation';
 
 // Types definitions
 interface RowData {
@@ -46,17 +22,6 @@ interface RowData {
   owner_project: string;
   usage_category: string;
   is_contract: string;
-}
-
-interface ConfirmationData {
-  chain_id: string;
-  address: string;
-  tagsObject: { [key: string]: string };
-}
-
-interface NotificationType {
-  message: string;
-  type: 'success' | 'error' | 'warning';
 }
 
 interface AttestationResult {
@@ -73,56 +38,6 @@ interface ColumnDefinition {
   needsCustomValidation?: boolean;
 }
 
-// Column definition for our table
-const COLUMNS: ColumnDefinition[] = [
-  { 
-    id: 'chain_id', 
-    name: 'Chain', 
-    required: true,
-    validator: (value: string) => {
-      return CHAIN_OPTIONS.some(option => option.value === value) ? null : 'Invalid chain value';
-    }
-  },
-  { 
-    id: 'address', 
-    name: 'Address', 
-    required: true,
-    validator: (value: string) => {
-      try {
-        ethers.getAddress(value);
-        return null;
-      } catch (error) {
-        console.error('Error:', error);
-        return 'Invalid Ethereum address';
-      }
-    }
-  },
-  { id: 'contract_name', name: 'Contract Name', required: false },
-  { 
-    id: 'owner_project', 
-    name: 'Owner Project', 
-    required: false,
-    // This validator will be used dynamically in the component since validProjects is loaded asynchronously
-    needsCustomValidation: true
-  },
-  { 
-    id: 'usage_category', 
-    name: 'Usage Category', 
-    required: false,
-    validator: (value: string) => {
-      return !value || VALID_CATEGORY_IDS.includes(value) ? null : 'Invalid category';
-    }
-  },
-  { 
-    id: 'is_contract', 
-    name: 'Is Contract', 
-    required: false,
-    validator: (value: string) => {
-      return value === '' || value === 'true' || value === 'false' ? null : 'Must be true or false';
-    }
-  },
-];
-
 // Define initial empty row
 const EMPTY_ROW: RowData = {
   chain_id: '', 
@@ -132,6 +47,41 @@ const EMPTY_ROW: RowData = {
   usage_category: '',
   is_contract: '',
 };
+
+// Column definition for our table
+const COLUMNS: ColumnDefinition[] = [
+  { 
+    id: 'chain_id', 
+    name: 'Chain', 
+    required: true,
+    validator: (value: string) => validateChain(value, CHAIN_OPTIONS)
+  },
+  { 
+    id: 'address', 
+    name: 'Address', 
+    required: true,
+    validator: (value: string) => validateAddress(value)
+  },
+  { id: 'contract_name', name: 'Contract Name', required: false },
+  { 
+    id: 'owner_project', 
+    name: 'Owner Project', 
+    required: false,
+    needsCustomValidation: true
+  },
+  { 
+    id: 'usage_category', 
+    name: 'Usage Category', 
+    required: false,
+    validator: (value: string) => validateCategory(value)
+  },
+  { 
+    id: 'is_contract', 
+    name: 'Is Contract', 
+    required: false,
+    validator: (value: string) => validateBoolean(value)
+  },
+];
 
 const BulkAttestationForm: React.FC = () => {
   const [rows, setRows] = useState<RowData[]>([{ ...EMPTY_ROW }]);
@@ -152,7 +102,7 @@ const BulkAttestationForm: React.FC = () => {
         const response = await fetch('https://api.growthepie.xyz/v1/labels/projects.json');
         const data = await response.json();
         
-        // Extract project IDs from the response (assuming the format is the same as in OwnerProjectSelect)
+        // Extract project IDs from the response
         if (data && data.data && data.data.data) {
           // The first item in each array is the project ID
           const projectIds = data.data.data.map((item: any[]) => item[0]);
@@ -255,12 +205,7 @@ const BulkAttestationForm: React.FC = () => {
     // Create an array of data for each row
     return validRows.map(row => {
       // Extract tags for this row
-      const tagsObject: { [key: string]: string } = {};
-      Object.entries(row)
-        .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && value)
-        .forEach(([key, value]) => {
-          tagsObject[key] = value;
-        });
+      const tagsObject = prepareTags(row);
       
       return {
         chain_id: row.chain_id,
@@ -316,45 +261,13 @@ const BulkAttestationForm: React.FC = () => {
         return;
       }
 
-      // Switch to Base network first
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }], // 0x2105 is hex for 8453 (Base)
-        });
-      } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to MetaMask
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x2105',
-              chainName: 'Base',
-              nativeCurrency: {
-                name: 'ETH',
-                symbol: 'ETH',
-                decimals: 18
-              },
-              rpcUrls: ['https://mainnet.base.org'],
-              blockExplorerUrls: ['https://basescan.org']
-            }]
-          });
-        } else {
-          throw switchError;
-        }
-      }
+      // Switch to Base network
+      await switchToBaseNetwork(window.ethereum);
 
-      // Initialize provider and signer for Base
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      // Initialize EAS SDK
-      const eas = new EAS(EAS_CONTRACT_ADDRESS, provider as unknown as any);
-      eas.connect(signer);
+      // Initialize EAS
+      const { eas } = await initializeEAS(window.ethereum);
 
       // Use multiAttest to submit all attestations in a single transaction
-      const schemaEncoder = new SchemaEncoder('string chain_id,string tags_json');
-      
       // Prepare attestation data for multiAttest
       interface AttestationData {
         recipient: string;
@@ -369,21 +282,12 @@ const BulkAttestationForm: React.FC = () => {
       const validRows = rows.filter(row => row.address.trim() !== '');
       
       for (const row of validRows) {
-        
         // Create tags_json object
-        const tagsObject: { [key: string]: string } = {};
-        Object.entries(row)
-          .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && value)
-          .forEach(([key, value]) => {
-            tagsObject[key] = value;
-          });
+        const tagsObject = prepareTags(row);
         
         console.log("Tags object:", tagsObject);
         
-        const encodedData = schemaEncoder.encodeData([
-          { name: 'chain_id', value: row.chain_id, type: 'string' },
-          { name: 'tags_json', value: JSON.stringify(tagsObject), type: 'string' }
-        ]);
+        const encodedData = prepareEncodedData(row.chain_id, tagsObject);
         
         console.log("Encoded data:", encodedData);
 

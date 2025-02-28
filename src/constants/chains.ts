@@ -1,7 +1,5 @@
 // src/constants/chains.ts
 
-import { id } from "ethers";
-
 export const CHAINS = [
   { id: 'ethereum', name: 'Ethereum', caip2: 'eip155:1' },
   { id: 'base', name: 'Base', caip2: 'eip155:8453' },

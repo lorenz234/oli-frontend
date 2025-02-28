@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Open Labels Initiative (OLI)
+
+A Next.js application providing a user interface for the Open Labels Initiative - a standardized framework and data model for EVM address labeling.
+
+## About the Project
+
+Open Labels Initiative (OLI) is built on three core pillars:
+
+1. **Data Model** - A standardized framework for blockchain address labeling that ensures consistency across different databases.
+2. **Label Pool** - A publicly accessible database of attested labels, collected through blockchain attestations.
+3. **Label Confidence** - Trust algorithms applied to raw labels, optimized for various use cases like analytics and security.
+
+## Features
+
+- **Search** - Find and explore detailed information about EVM addresses
+- **Attest** - Contribute to the ecosystem by creating attestations for blockchain addresses
+- **Analytics** - View statistics, leaderboards of attestors, and explore attestation distribution
+
+## Technology Stack
+
+- **Frontend**: Next.js 15, React 19, TailwindCSS 3
+- **State Management**: React Hooks
+- **GraphQL**: Apollo Client for data fetching
+- **Blockchain Integration**: Ethereum Attestation Service (EAS) SDK, ethers.js
+- **UI Components**: Recharts for data visualization, Headless UI for accessible components
+- **Styling**: TailwindCSS with custom gradients
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js (v18 or later)
+- NPM or Yarn
+- MetaMask or compatible Ethereum wallet for creating attestations
+
+### Installation
+
+1. Clone the repository
+   ```
+   git clone https://github.com/openlabelsinitiative/oli.git
+   cd oli
+   ```
+
+2. Install dependencies
+   ```
+   npm install
+   # or
+   yarn install
+   ```
+
+
+3. Run the development server
+   ```
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Project Structure
+
+- `/src/app`: Next.js app directory structure containing pages
+- `/src/components`: Reusable React components
+- `/src/services`: API services and data fetching logic
+- `/src/constants`: Project constants and configuration
+- `/src/lib`: Utility functions and shared libraries
+
+## Key Components
+
+- **AttestationForm**: Form for creating new address attestations
+- **SearchTab**: Interface for searching and exploring address labels
+- **LeaderboardTable**: Displays top attestors in the ecosystem
+- **LatestAttestations**: Shows recent attestation activity
+
+## Blockchain Integration
+
+The application integrates with the Ethereum Attestation Service (EAS) on Base network. Attestations use a standardized schema with the UID:
+```
+0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Contributing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Contributions are welcome! Please check out our community calls and join the ecosystem.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Learn More
+## Community
 
-To learn more about Next.js, take a look at the following resources:
+- Join our [community calls](https://calendar.google.com/calendar/u/3?cid=MmQ0MzYxNzQ3ZGFiY2M3ZDJkZjk0NjZiYmY3MmNmZDUwZTNjMjE2OTQ4YzgyNmI4OTBmYjYyN2VmNGRjNjQ4OEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t)
+- Follow us on [Twitter](https://x.com/open_labels)
+- Check out our main [GitHub repository](https://github.com/openlabelsinitiative/OLI)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Deploy on Vercel
+## Supporters
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Ethereum Foundation
+- growthepie

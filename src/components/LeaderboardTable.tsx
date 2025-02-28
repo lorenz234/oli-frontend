@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { gql } from '@apollo/client';
 import client from '@/lib/apollo-client';
+// Import the loading animation component
+import LoadingAnimation from '@/components/LoadingAnimation';
 
 interface Attestation {
   attester: string;
@@ -16,7 +18,7 @@ interface EnsNames {
   [key: string]: string | null;
 }
 
-const ETH_NODE_URL="https://mainnet.gateway.tenderly.co"
+const ETH_NODE_URL="https://rpc.mevblocker.io/fast"
 
 const ATTESTATION_QUERY = gql`
   query GroupByAttestation($by: [AttestationScalarFieldEnum!]!, $where: AttestationWhereInput, $orderBy: [AttestationOrderByWithAggregationInput!], $take: Int) {
@@ -100,11 +102,7 @@ const LeaderboardTable: React.FC = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-lg text-black">Loading...</div>
-    </div>
-  );
+  if (loading) return <LoadingAnimation />;
 
   if (error) return (
     <div className="min-h-screen flex items-center justify-center">

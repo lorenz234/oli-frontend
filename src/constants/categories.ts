@@ -84,3 +84,20 @@ export const CATEGORIES: MainCategory[] = [
     ]
   }
 ];
+
+// Get all valid category IDs
+export const VALID_CATEGORY_IDS = CATEGORIES.flatMap(mainCategory => 
+  mainCategory.categories.map(category => category.category_id)
+);
+
+// Create a mapping of category IDs to their display info
+export const CATEGORY_MAP: { [key: string]: { name: string; description: string; mainCategory: string } } = {};
+CATEGORIES.forEach(mainCategory => {
+  mainCategory.categories.forEach(category => {
+    CATEGORY_MAP[category.category_id] = {
+      name: category.name,
+      description: category.description,
+      mainCategory: mainCategory.main_category_name
+    };
+  });
+});

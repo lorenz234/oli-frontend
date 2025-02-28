@@ -1,51 +1,34 @@
+// components/attestation/AttestationForm.tsx
 'use client';
 
 import React, { useState } from 'react';
-import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
-import { ethers } from 'ethers';
 import ConfirmationModal from '../attestation/ConfirmationModal';
 import InputWithCheck from '../attestation/InputWithCheck';
 import FormLabel from '../attestation/FormLabel';
 import ToggleSwitch from './ToggleSwitch';
 import Notification from './Notification';
 import { TAG_DESCRIPTIONS } from '../../constants/tagDescriptions';
-import { 
-  formFields, 
-  initialFormState, 
-  FormField, 
-  FormMode,
-  FieldValue
-} from './formFields';  // Import named exports directly
 
-const EAS_CONTRACT_ADDRESS = "0x4200000000000000000000000000000000000021";
-const SCHEMA_UID = "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68";
-// Define interfaces for state objects
-interface NotificationState {
-  message: string;
-  type: 'success' | 'error';
-}
+// Import shared constants and utilities
+import { SCHEMA_UID } from '../../constants/eas';
+import { formFields, initialFormState } from '../../constants/formFields';
+import { FormMode, FieldValue, NotificationType, ConfirmationData } from '../../types/attestation';
+import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
 
-interface ConfirmationState {
-  chain_id: string;
-  address: string;
-  tagsObject: Record<string, unknown>;
-}
+// Define FormDataState type that extends initialFormState with an index signature
+type FormDataState = typeof initialFormState & {
+  [key: string]: FieldValue;
+};
 
 interface ErrorState {
   [key: string]: string;
 }
 
-// Create FormDataState type that extends initialFormState with an index signature
-type FormDataState = typeof initialFormState & {
-  [key: string]: FieldValue;
-};
-
-
 const AttestationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notification, setNotification] = useState<NotificationState | null>(null);
+  const [notification, setNotification] = useState<NotificationType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [confirmationData, setConfirmationData] = useState<ConfirmationState | null>(null);
+  const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
   const [formMode, setFormMode] = useState<FormMode>('simple');
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [errors, setErrors] = useState<ErrorState>({});
@@ -63,29 +46,16 @@ const AttestationForm = () => {
     }
   };
 
-  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+  const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setNotification({ message, type });
   };
 
   const submitAttestation = async () => {
-    // Initialize SchemaEncoder with your schema
-    const schemaEncoder = new SchemaEncoder('string chain_id,string tags_json');
-
     // Create tags_json object
-    const tagsObject: { [key: string]: any } = {};
-
-    Object.entries(formData)
-    .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
-      (value !== undefined && value !== ''))
-    .forEach(([key, value]) => {
-      tagsObject[key] = value;
-    });
+    const tagsObject = prepareTags(formData);
     console.log('Tags object:', tagsObject);
 
-    const encodedData = schemaEncoder.encodeData([
-      { name: 'chain_id', value: formData.chain_id, type: 'string' },
-      { name: 'tags_json', value: JSON.stringify(tagsObject), type: 'string' }
-    ]);
+    const encodedData = prepareEncodedData(formData.chain_id as string, tagsObject);
 
     if (!window.ethereum) {
       showNotification("Please connect your wallet first", "error");
@@ -93,49 +63,17 @@ const AttestationForm = () => {
     }
 
     try {
-      // Switch to Base network first
-      try {
-        // Try to switch to Base
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }], // 0x2105 is hex for 8453 (Base)
-        });
-      } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to MetaMask
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x2105',
-              chainName: 'Base',
-              nativeCurrency: {
-                name: 'ETH',
-                symbol: 'ETH',
-                decimals: 18
-              },
-              rpcUrls: ['https://mainnet.base.org'],
-              blockExplorerUrls: ['https://basescan.org']
-            }]
-          });
-        } else {
-          throw switchError;
-        }
-      }
+      // Switch to Base network
+      await switchToBaseNetwork(window.ethereum);
 
-      // Initialize provider and signer for Base
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-
-      // Initialize EAS SDK
-      const eas = new EAS(EAS_CONTRACT_ADDRESS, provider as unknown as any);
-
-      eas.connect(signer);
+      // Initialize EAS
+      const { eas } = await initializeEAS(window.ethereum);
 
       /// Submit the attestation
       const tx = await eas.attest({
         schema: SCHEMA_UID,
         data: {
-          recipient: formData.address,
+          recipient: formData.address as string,
           expirationTime: BigInt(0), // Using BigInt instead of 0n
           revocable: true,
           data: encodedData,
@@ -190,18 +128,12 @@ const AttestationForm = () => {
     }
 
     // Create tags object for preview
-    const tagsObject: Record<string, unknown> = {};
-    Object.entries(formData)
-      .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
-        (value !== undefined && value !== ''))
-      .forEach(([key, value]) => {
-        tagsObject[key] = value;
-      });
+    const tagsObject = prepareTags(formData);
 
     // Set confirmation data and open modal
     setConfirmationData({
-      chain_id: formData.chain_id,
-      address: formData.address,
+      chain_id: formData.chain_id as string,
+      address: formData.address as string,
       tagsObject
     });
     setIsModalOpen(true);
@@ -230,7 +162,7 @@ const AttestationForm = () => {
     setFormMode(prev => prev === 'simple' ? 'advanced' : 'simple');
   };
 
-  const renderField = (field: FormField) => {
+  const renderField = (field: typeof formFields[0]) => {
     const commonInputClassName = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-400 bg-gray-50 py-2 pl-3";
 
     // Type assertion to make tooltipKey compatible with the FormLabel props
@@ -328,14 +260,14 @@ const AttestationForm = () => {
         />
       )}
 
-      <div className="flex justify-center">
+      <div className="flex justify-end px-6 pt-6">
         <ToggleSwitch 
           isActive={formMode === 'advanced'} 
           onToggle={toggleFormMode} 
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 p-6 pr-10">
+      <form onSubmit={handleSubmit} className="space-y-4 pl-6 pb-6 pr-12">
         {getVisibleFields().map(renderField)}
 
         {/* Submit Button */}
@@ -361,11 +293,11 @@ const AttestationForm = () => {
       </form>
 
       <ConfirmationModal
-      isOpen={isModalOpen}
-      onClose={() => setIsModalOpen(false)}
-      onConfirm={handleConfirmSubmission}
-      data={confirmationData!}
-    />
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmSubmission}
+        data={confirmationData!}
+      />
     </>
   );
 };

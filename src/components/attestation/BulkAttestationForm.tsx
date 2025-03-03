@@ -47,6 +47,16 @@ const EMPTY_ROW: RowData = {
   is_contract: '',
 };
 
+// Dummy row for template
+const DUMMY_ROW: RowData = {
+  chain_id: 'eip155:1',
+  address: '0x1234567890123456789012345678901234567890',
+  contract_name: 'Example Contract',
+  owner_project: 'growthepie',
+  usage_category: 'other',
+  is_contract: 'true',
+};
+
 // Column definition for our table
 const COLUMNS: ColumnDefinition[] = [
   { 
@@ -214,6 +224,13 @@ const BulkAttestationForm: React.FC = () => {
     });
   };
 
+  // Check if a row is the dummy example row
+  const isDummyRow = (row: RowData): boolean => {
+    // Check if the address matches the dummy row
+    // We specifically check the address since it's a required field
+    return row.address === DUMMY_ROW.address;
+  };
+
   // Handle submission request
   const handleSubmissionRequest = (e: React.FormEvent<HTMLButtonElement>): void => {
     e.preventDefault();
@@ -222,8 +239,11 @@ const BulkAttestationForm: React.FC = () => {
       return;
     }
 
-    // Filter out empty rows
-    const validRows = rows.filter((row: RowData) => row.address.trim() !== '');
+    // Filter out empty rows and dummy rows
+    const validRows = rows.filter((row: RowData) => 
+      row.address.trim() !== '' && !isDummyRow(row)
+    );
+
     if (validRows.length === 0) {
       showNotification("Please add at least one valid address", "error");
       return;
@@ -277,8 +297,10 @@ const BulkAttestationForm: React.FC = () => {
       
       const attestationsData: AttestationData[] = [];
       
-      // Filter valid rows again to be safe
-      const validRows = rows.filter(row => row.address.trim() !== '');
+      // Filter valid rows again to be safe and exclude dummy rows
+      const validRows = rows.filter(row => 
+        row.address.trim() !== '' && !isDummyRow(row)
+      );
       
       for (const row of validRows) {
         // Create tags_json object
@@ -433,7 +455,12 @@ const BulkAttestationForm: React.FC = () => {
             }
           });
           
-          newRows.push(row);
+          // Skip the dummy row if it matches
+          if (!isDummyRow(row)) {
+            newRows.push(row);
+          } else {
+            console.log("Skipping dummy row from import");
+          }
         }
         
         if (newRows.length > 0) {
@@ -476,10 +503,13 @@ const BulkAttestationForm: React.FC = () => {
 
   // Handle CSV export
   const handleExportCSV = () => {
+    // Filter out dummy rows before export
+    const rowsToExport = rows.filter(row => !isDummyRow(row));
+
     // Create CSV header
     const csvContent = [
       COLUMNS.map(col => col.name).join(','),
-      ...rows.map(row => 
+      ...rowsToExport.map(row => 
         COLUMNS.map(col => row[col.id] || '').join(',')
       )
     ].join('\n');
@@ -498,10 +528,10 @@ const BulkAttestationForm: React.FC = () => {
 
   // Handle template download
   const handleDownloadTemplate = () => {
-    // Create template CSV with just headers and one empty row
+    // Create template CSV with just headers and dummy row
     const csvContent = [
       COLUMNS.map(col => col.name).join(','),
-      //COLUMNS.map(col => '').join(',')
+      COLUMNS.map(col => DUMMY_ROW[col.id] || '').join(',')
     ].join('\n');
     
     // Create download link

@@ -77,7 +77,7 @@ export const validateURL = (url: FieldValue): string => {
     const urlToCheck = urlStr.startsWith('www.') ? `https://${urlStr}` : urlStr;
     new URL(urlToCheck);
     return '';
-  } catch (e) {
+  } catch (_) {
     return 'Invalid URL format';
   }
   

@@ -14,23 +14,20 @@ const Footer: FC = () => {
           {/* Logo/Home link */}
           <div className="flex items-center">
             <div 
-              className="relative h-8 w-auto cursor-pointer hover:opacity-90 transition-opacity duration-200 md:h-12"
+              className="cursor-pointer hover:opacity-90 transition-opacity duration-200"
               onClick={() => router.push('/')}
             >
               <Image 
                 src="/oli-logo.png" 
                 alt="Open Labels Initiative" 
-                className="object-contain"
-                width={48}
-                height={48}
-                style={{
-                  width: 'auto',
-                  height: '100%'
-                }}
+                width={1982}
+                height={758}
+                className="h-8 w-auto md:h-12"
                 priority
+                quality={100}
               />
             </div>
-        </div>
+          </div>
         </div>
         <div className="flex items-center justify-center gap-6">
           <a 

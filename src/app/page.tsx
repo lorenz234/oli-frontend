@@ -198,7 +198,7 @@ const HomePage: FC = () => {
               Watch Our Explainer
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-              Learn about the Open Labels Initiative in just a minute
+              Learn everything about the Open Labels Initiative in just 12 minutes
             </p>
           </div>
           <div className="flex justify-center">

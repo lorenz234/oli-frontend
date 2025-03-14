@@ -10,7 +10,48 @@ export const prepareTags = (formData: Record<string, any>) => {
     .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
       (value !== undefined && value !== ''))
     .forEach(([key, value]) => {
-      tagsObject[key] = value;
+      // Convert specific fields to integers
+      if (key === 'erc20.decimals' || key === 'version') {
+        tagsObject[key] = parseInt(value, 10);
+      }
+      // Format deployment_date to use space instead of T
+      else if (key === 'deployment_date' && typeof value === 'string') {
+        // Replace the 'T' with a space in the datetime format
+        tagsObject[key] = value.replace('T', ' ');
+      }
+      // Ensure erc_type is always an array of strings or not included if empty
+      else if (key === 'erc_type') {
+        // If the value is a comma-separated string (which it should be now)
+        if (typeof value === 'string' && value.trim() !== '') {
+          const ercValues = value
+            .split(',')
+            .map(item => item.trim())
+            .filter(item => item !== '');
+            
+          if (ercValues.length > 0) {
+            tagsObject[key] = ercValues;
+          }
+        }
+        // If it's somehow already an array, ensure all items are strings
+        else if (Array.isArray(value)) {
+          const validStrings = value
+            .map(item => String(item))
+            .filter(item => item !== null && item !== undefined && item !== '');
+            
+          if (validStrings.length > 0) {
+            tagsObject[key] = validStrings;
+          }
+        }
+        // If it's a single value and valid, convert to a string and put in an array
+        else if (value !== null && value !== undefined && value !== '') {
+          tagsObject[key] = [String(value)];
+        }
+        // If value is empty/null/undefined, don't add it to tagsObject at all
+      }
+      // Keep other fields as they are
+      else {
+        tagsObject[key] = value;
+      }
     });
     
   return tagsObject;

@@ -1,20 +1,35 @@
 'use client';
 
 import type { FC } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 const Footer: FC = () => {
+  const router = useRouter();
+  
   return (
     <footer className="bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto grid grid-cols-3 items-center">
         <div className="flex items-center">
           {/* Logo/Home link */}
           <div className="flex items-center">
-            <img 
-              src="/oli-logo.png" 
-              alt="Open Labels Initiative" 
-              className="h-8 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200 md:h-12"
-              onClick={() => window.location.href = '/'}
-            />
+            <div 
+              className="relative h-8 w-auto cursor-pointer hover:opacity-90 transition-opacity duration-200 md:h-12"
+              onClick={() => router.push('/')}
+            >
+              <Image 
+                src="/oli-logo.png" 
+                alt="Open Labels Initiative" 
+                className="object-contain"
+                width={48}
+                height={48}
+                style={{
+                  width: 'auto',
+                  height: '100%'
+                }}
+                priority
+              />
+            </div>
         </div>
         </div>
         <div className="flex items-center justify-center gap-6">

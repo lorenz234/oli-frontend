@@ -1,7 +1,7 @@
 // src/types/attestation.ts
 export type FieldValue = string | boolean | undefined;
 export type FormMode = 'simple' | 'advanced';
-export type FieldType = 'select' | 'text' | 'radio' | 'custom';
+export type FieldType = 'select' | 'text' | 'radio' | 'custom' | 'date' | 'number' | 'multiselect';
 export type FieldVisibility = 'simple' | 'advanced' | 'both';
 
 export interface ComponentProps {
@@ -15,11 +15,12 @@ export interface FormField {
   type: FieldType;
   tooltipKey: string;
   visibility: FieldVisibility;
-  options?: { value: string; label: string }[];
+  options?: { value: string | number; label: string }[];  // Allow string or number
   validator?: (value: FieldValue) => string;
   placeholder?: string;
   required?: boolean;
   component?: (props: ComponentProps) => React.ReactNode;
+  multiple?: boolean;
 }
 
 export interface NotificationType {

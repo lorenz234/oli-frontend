@@ -36,3 +36,30 @@ export const validateBoolean = (value: string): string | null => {
     ? null 
     : 'Must be true or false';
 };
+
+export const validateNumber = (value: FieldValue): string => {
+  if (value === '' || value === undefined) return '';
+  
+  // Check if value can be parsed as a number
+  const num = Number(value);
+  if (isNaN(num)) return 'Must be a valid number';
+  
+  // Check if it's an integer (for cases where integer is specifically required)
+  if (Number.isInteger(num)) return '';
+  
+  return '';
+};
+
+export const validateTxHash = (txHash: FieldValue): string => {
+  if (!txHash) return '';
+  
+  const hashStr = txHash as string;
+  // Check if it matches the Ethereum transaction hash format: 0x followed by 64 hex characters
+  const txHashRegex = /^0x[a-fA-F0-9]{64}$/;
+  
+  if (!txHashRegex.test(hashStr)) {
+    return 'Invalid transaction hash format';
+  }
+  
+  return '';
+};

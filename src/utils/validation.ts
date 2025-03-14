@@ -77,7 +77,8 @@ export const validateURL = (url: FieldValue): string => {
     const urlToCheck = urlStr.startsWith('www.') ? `https://${urlStr}` : urlStr;
     new URL(urlToCheck);
     return '';
-  } catch (_) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (e) {
     return 'Invalid URL format';
   }
   

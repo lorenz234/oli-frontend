@@ -142,89 +142,121 @@ const HomePage: FC = () => {
         </div>
       </div>
 
-      {/* The 3 Pillars Section */}
-        <div className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold text-white">
-                Three Pillars of OLI
-              </h2>
+{/* The 3 Pillars Section with Tags */}
+<div className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 py-16">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center">
+      <h2 className="text-3xl font-extrabold text-white">
+        Three Pillars of OLI
+      </h2>
+    </div>
+    <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-3">
+      {/* Data Model Pillar */}
+      <div className="bg-white overflow-hidden shadow rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="px-6 py-8">
+          <div className="flex items-center mb-4">
+            <div className="p-2 rounded-lg bg-blue-100 mr-4">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
             </div>
-            <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-3">
-              {/* Data Model Pillar */}
-              <div className="bg-white overflow-hidden shadow rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="px-6 py-8">
-                  <div className="flex items-center mb-4">
-                    <div className="p-2 rounded-lg bg-blue-100 mr-4">
-                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900">Data Model</h3>
-                  </div>
-                  <p className="mt-2 text-base text-gray-500 mb-6">
-                    A standardized data model for address labels ensures seamless synchronization across databases and alignment on value sets, creating a common foundation for collaboration.
-                  </p>
-                  <a href="https://github.com/openlabelsinitiative/OLI/tree/main/1_data_model" target="_blank" rel="noopener noreferrer" 
-                    className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
-                    Learn more
-                    <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              {/* Label Pool Pillar */}
-              <div className="bg-white overflow-hidden shadow rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="px-6 py-8">
-                  <div className="flex items-center mb-4">
-                    <div className="p-2 rounded-lg bg-purple-100 mr-4">
-                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900">Label Pool</h3>
-                  </div>
-                  <p className="mt-2 text-base text-gray-500 mb-6">
-                    Contribute and access a shared pool of raw labels using EAS attestations. Reduce labelling redundancy, streamline collaboration and ensure permanent accessibility for all.
-                  </p>
-                  <a href="https://github.com/openlabelsinitiative/OLI/tree/main/2_label_pool" target="_blank" rel="noopener noreferrer" 
-                    className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
-                    Learn more
-                    <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              {/* Label Confidence Pillar */}
-              <div className="bg-white overflow-hidden shadow rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="px-6 py-8">
-                  <div className="flex items-center mb-4">
-                    <div className="p-2 rounded-lg bg-pink-100 mr-4">
-                      <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900">Label Confidence</h3>
-                  </div>
-                  <p className="mt-2 text-base text-gray-500 mb-6">
-                    Specialised trust algorithms verify and refine raw labels, transforming them into reliable, use-case-specific data for analytics, security and more.
-                  </p>
-                  <a href="https://github.com/openlabelsinitiative/OLI/tree/main/3_label_confidence" target="_blank" rel="noopener noreferrer" 
-                    className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
-                    Learn more
-                    <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </a>
-                </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Data Model</h3>
+              <div className="flex mt-1 space-x-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                 taxonomy
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  synchronization
+                </span>
               </div>
             </div>
           </div>
+          <p className="mt-2 text-base text-gray-500 mb-6">
+            A standardized data model for address labels ensures seamless synchronization across databases and alignment on value sets, creating a common foundation for collaboration.
+          </p>
+          <a href="https://github.com/openlabelsinitiative/OLI/tree/main/1_data_model" target="_blank" rel="noopener noreferrer" 
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
+            Learn more
+            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
         </div>
+      </div>
+
+      {/* Label Pool Pillar */}
+      <div className="bg-white overflow-hidden shadow rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="px-6 py-8">
+          <div className="flex items-center mb-4">
+            <div className="p-2 rounded-lg bg-purple-100 mr-4">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Label Pool</h3>
+              <div className="flex mt-1 space-x-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  data entry
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  read
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  write
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="mt-2 text-base text-gray-500 mb-6">
+            Contribute and access a shared pool of raw labels using EAS attestations. Reduce labelling redundancy, streamline collaboration and ensure permanent accessibility for all.
+          </p>
+          <a href="https://github.com/openlabelsinitiative/OLI/tree/main/2_label_pool" target="_blank" rel="noopener noreferrer" 
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
+            Learn more
+            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      {/* Label Confidence Pillar */}
+      <div className="bg-white overflow-hidden shadow rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="px-6 py-8">
+          <div className="flex items-center mb-4">
+            <div className="p-2 rounded-lg bg-pink-100 mr-4">
+              <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Label Confidence</h3>
+              <div className="flex mt-1 space-x-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                  trust
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="mt-2 text-base text-gray-500 mb-6">
+            Specialised trust algorithms verify and refine raw labels, transforming them into reliable, use-case-specific data for analytics, security and more.
+          </p>
+          <a href="https://github.com/openlabelsinitiative/OLI/tree/main/3_label_confidence" target="_blank" rel="noopener noreferrer" 
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
+            Learn more
+            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
       {/* Video Section */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

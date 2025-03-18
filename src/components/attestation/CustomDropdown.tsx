@@ -1,0 +1,234 @@
+// components/attestation/CustomDropdown.tsx
+import React, { useState, useRef, useEffect } from 'react';
+
+// Enhanced DropdownOption to support grouping and descriptions
+interface DropdownOption {
+  value: string | number;
+  label: string;
+  description?: string;
+  group?: string;
+}
+
+interface CustomDropdownProps {
+  id: string;
+  options: DropdownOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  error?: string;
+  showGroups?: boolean; // Option to show or hide group headers
+}
+
+const CustomDropdown: React.FC<CustomDropdownProps> = ({
+  id,
+  options,
+  value,
+  onChange,
+  placeholder = 'Select an option',
+  required = false,
+  className = '',
+  error,
+  showGroups = true
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Find the selected option label
+  const selectedOption = options.find(option => String(option.value) === String(value));
+  const displayText = selectedOption ? selectedOption.label : placeholder;
+
+  // Group options by their group property (if present)
+  const groupedOptions = options.reduce((groups: Record<string, DropdownOption[]>, option) => {
+    const group = option.group || 'Ungrouped';
+    if (!groups[group]) {
+      groups[group] = [];
+    }
+    groups[group].push(option);
+    return groups;
+  }, {});
+
+  // Filter options based on search term
+  const filteredOptions = searchTerm.trim() === '' 
+    ? options 
+    : options.filter(option => 
+        option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (option.description && option.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Handle toggling the dropdown
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+    if (!isOpen) {
+      // Clear search when opening
+      setSearchTerm('');
+    }
+  };
+
+  // Render group headers or just the options
+  const renderOptions = () => {
+    if (!showGroups || Object.keys(groupedOptions).length <= 1) {
+      // Just render all options if there are no groups or we don't want to show them
+      return filteredOptions.map(option => renderOption(option));
+    } else {
+      // Render options with group headers
+      return Object.entries(groupedOptions).map(([group, groupOptions]) => {
+        // Filter options in this group
+        const filteredGroupOptions = groupOptions.filter(option => 
+          filteredOptions.some(fOption => String(fOption.value) === String(option.value))
+        );
+        
+        // Only show groups that have options after filtering
+        if (filteredGroupOptions.length === 0) return null;
+
+        return (
+          <div key={group}>
+            <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+              {group}
+            </div>
+            {filteredGroupOptions.map(option => renderOption(option))}
+          </div>
+        );
+      });
+    }
+  };
+
+  // Render a single option
+  const renderOption = (option: DropdownOption) => (
+    <li
+      key={String(option.value)}
+      id={`${id}-option-${option.value}`}
+      role="option"
+      aria-selected={String(value) === String(option.value)}
+      className={`cursor-pointer select-none relative py-2 pl-3 pr-9 ${
+        String(value) === String(option.value)
+          ? 'text-white bg-indigo-600'
+          : 'text-gray-900 hover:bg-indigo-100'
+      }`}
+      onClick={() => {
+        onChange(String(option.value));
+        setIsOpen(false);
+        setSearchTerm('');
+      }}
+      title={option.description}
+    >
+      <div className="flex flex-col">
+        <span className={`block truncate ${String(value) === String(option.value) ? 'font-semibold' : 'font-normal'}`}>
+          {option.label}
+        </span>
+        {option.description && (
+          <span className={`text-xs ${
+            String(value) === String(option.value) ? 'text-indigo-100' : 'text-gray-500'
+          }`}>
+            {option.description}
+          </span>
+        )}
+      </div>
+
+      {String(value) === String(option.value) && (
+        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
+          <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        </span>
+      )}
+    </li>
+  );
+
+  return (
+    <div ref={dropdownRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        id={id}
+        className={`w-full px-4 py-2 text-left bg-gray-50 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-700 flex items-center justify-between`}
+        onClick={toggleDropdown}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className={`block truncate ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}>
+          {displayText}
+        </span>
+        <span className="ml-2 pointer-events-none">
+          <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </span>
+      </button>
+
+      {/* Hidden native select for form submission */}
+      <select
+        id={`${id}-native`}
+        name={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        className="sr-only"
+        aria-hidden="true"
+      >
+        <option value="" disabled>{placeholder}</option>
+        {options.map(option => (
+          <option key={String(option.value)} value={String(option.value)}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+
+      {/* Dropdown menu */}
+      {isOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+          {/* Search input - sticky at the top with no gap */}
+          <div className="px-3 py-2 sticky top-0 z-10 bg-white border-b shadow-sm">
+            <input
+              ref={inputRef}
+              type="text"
+              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          <ul tabIndex={-1} role="listbox" aria-labelledby={id} aria-activedescendant={value ? `${id}-option-${value}` : undefined}>
+            {filteredOptions.length === 0 ? (
+              <li className="px-3 py-2 text-gray-500 text-center">No results found</li>
+            ) : (
+              renderOptions()
+            )}
+          </ul>
+        </div>
+      )}
+      
+      {error && (
+        <p className="mt-1 text-sm text-red-500">{error}</p>
+      )}
+    </div>
+  );
+};
+
+export default CustomDropdown;

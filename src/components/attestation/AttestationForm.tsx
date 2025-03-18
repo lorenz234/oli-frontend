@@ -7,6 +7,7 @@ import InputWithCheck from '../attestation/InputWithCheck';
 import FormLabel from '../attestation/FormLabel';
 import ToggleSwitch from './ToggleSwitch';
 import Notification from './Notification';
+import CustomDropdown from './CustomDropdown';
 import { TAG_DESCRIPTIONS } from '../../constants/tagDescriptions';
 
 // Import shared constants and utilities
@@ -320,20 +321,15 @@ const AttestationForm = () => {
           )}
 
           {field.type === 'select' && (
-            <select
+            <CustomDropdown
               id={field.id}
-              name={field.id}
+              options={field.options || []}
               value={getStringValue(formData[field.id])}
-              onChange={(e) => handleChange(field.id, e.target.value)}
+              onChange={(value) => handleChange(field.id, value)}
+              placeholder={field.placeholder || `Select ${field.label}`}
               required={field.required}
-              className={commonInputClassName}
-            >
-              {field.options?.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              error={errors[field.id]}
+            />
           )}
 
           {field.type === 'multiselect' && (

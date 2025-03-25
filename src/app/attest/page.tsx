@@ -14,7 +14,7 @@ export default function AttestPage() {
         <div className="py-6 px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Bulk Attestation Options</h2>
           <p className="text-gray-700 mb-4">
-            Need to submit more than 30 attestations programmatically as part of your data pipeline? You can use our Python and TypeScript scripts for larger datasets and pipelines. Offchain attestations are also possible (0 gas fees).
+            Need to submit more than 50 attestations programmatically as part of your data pipeline? You can use our Python and TypeScript scripts for larger datasets and pipelines. Offchain attestations are also possible (0 gas fees).
           </p>
           <Link 
             href="https://github.com/openlabelsinitiative/OLI/tree/main/2_label_pool/tooling_write" 

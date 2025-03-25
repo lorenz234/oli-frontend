@@ -250,8 +250,8 @@ const BulkAttestationForm: React.FC = () => {
     }
 
     // Check if we exceed the maximum allowed number of attestations
-    if (validRows.length > 30) {
-      showNotification(`You can only submit up to 30 attestations at once. You currently have ${validRows.length} valid rows.`, "error");
+    if (validRows.length > 50) {
+      showNotification(`You can only submit up to 50 attestations at once. You currently have ${validRows.length} valid rows.`, "error");
       return;
     }
 
@@ -606,7 +606,7 @@ const BulkAttestationForm: React.FC = () => {
             Enter multiple addresses and their associated tags for bulk attestation. All attestations will be submitted in a single transaction, saving gas and time.
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Note: Using the multiAttest feature requires only one signature for all attestations, making the process more efficient. Maximum of 30 attestations allowed per batch.
+            Note: Using the multiAttest feature requires only one signature for all attestations, making the process more efficient. Maximum of 50 attestations allowed per batch.
           </p>
         </div>
         

@@ -9,7 +9,7 @@ export default function AddProjectPage() {
         <div className="py-6 px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Add a New Project</h2>
           <p className="text-gray-700 mb-4">
-            You couldn't find you project in our 'Owner Project' dropdown? Please double check and then consider adding your project to the OSS (Open Source Software) directory which is used by OLI. The project from will generate a YAML file that can be added to the OSS repo via a GitHub pull request.
+            You couldn't find you project in our -Owner Project- dropdown? Please double check and then consider adding your project to the OSS (Open Source Software) directory which is used by OLI. The project from will generate a YAML file that can be added to the OSS repo via a GitHub pull request.
           </p>
           <Link 
             href="https://github.com/opensource-observer/oss-directory"

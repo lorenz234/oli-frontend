@@ -1,7 +1,7 @@
 // components/attestation/AttestationForm.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ConfirmationModal from '../attestation/ConfirmationModal';
 import InputWithCheck from '../attestation/InputWithCheck';
 import FormLabel from '../attestation/FormLabel';
@@ -25,7 +25,12 @@ interface ErrorState {
   [key: string]: string;
 }
 
-const AttestationForm = () => {
+interface AttestationFormProps {
+  prefilledAddress?: string;
+  prefilledChainId?: string;
+}
+
+const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, prefilledChainId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<NotificationType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +38,17 @@ const AttestationForm = () => {
   const [formMode, setFormMode] = useState<FormMode>('simple');
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [errors, setErrors] = useState<ErrorState>({});
+
+  // Use prefilledAddress and prefilledChainId if provided
+  useEffect(() => {
+    if (prefilledAddress || prefilledChainId) {
+      setFormData(prev => ({
+        ...prev,
+        ...(prefilledAddress ? { address: prefilledAddress } : {}),
+        ...(prefilledChainId ? { chain_id: prefilledChainId } : {})
+      }));
+    }
+  }, [prefilledAddress, prefilledChainId]);
 
   // Filter fields based on current form mode
   const getVisibleFields = () => {
@@ -320,7 +336,11 @@ const AttestationForm = () => {
             />
           )}
 
-          {field.type === 'select' && (
+          {field.type === 'select' && field.id === 'chain_id' && prefilledChainId ? (
+            <div className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm bg-gray-50 py-2 pl-3 text-gray-700 text-sm">
+              {field.options?.find(opt => opt.value === prefilledChainId)?.label || prefilledChainId}
+            </div>
+          ) : field.type === 'select' && (
             <CustomDropdown
               id={field.id}
               options={field.options || []}

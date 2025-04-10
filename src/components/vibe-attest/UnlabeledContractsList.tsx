@@ -130,7 +130,7 @@ const UnlabeledContractsList: React.FC<UnlabeledContractsListProps> = ({
           Top Unlabeled Smart Contracts 
         </h2>
         <p className="text-sm text-gray-600">
-          These contracts have high transaction volume but haven't been labeled yet.
+          These contracts have high transaction volume and gas spent but haven't been labeled yet.
         </p>
       </div>
       

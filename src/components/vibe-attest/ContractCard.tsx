@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { UnlabeledContract } from '@/types/unlabeledContracts';
 import { CHAINS } from '@/constants/chains';
 import { fetchAttestationsByContract, Attestation } from '@/services/attestationService';
 import AttestationList from './AttestationList';
+
+// Cache for storing attestation results during the session
+const attestationCache: Record<string, Attestation[]> = {};
 
 interface ParsedAttestation {
   attester: string;
@@ -29,6 +32,48 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   const [attestationCount, setAttestationCount] = useState(0);
   const [attestations, setAttestations] = useState<Attestation[]>([]);
   const [showAttestationList, setShowAttestationList] = useState(false);
+  const [hasBeenInView, setHasBeenInView] = useState(false);
+  
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Format full address for display
+  function formatFullAddress(address: string): string {
+    if (!address) return '';
+    return address.startsWith('0x') ? address : `0x${address}`;
+  }
+
+  const fullAddress = formatFullAddress(contract.address);
+
+  // Setup Intersection Observer to detect when card is in view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasBeenInView) {
+          setHasBeenInView(true);
+          // Auto-check for attestations when the card comes into view
+          if (!isCheckingAttestations && attestations.length === 0) {
+            checkAttestations(false); // Use cache if available for automatic checks
+          }
+        }
+      },
+      {
+        root: null, // Use viewport as root
+        rootMargin: '0px',
+        threshold: 0.5, // Trigger when at least 50% of the card is visible
+      }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+    };
+  }, [hasBeenInView, isCheckingAttestations, attestations.length, fullAddress]);
 
   // Get chain metadata
   const getChainMetadata = (chainId: string) => {
@@ -40,12 +85,6 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   // Format transaction count with commas
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
-  };
-
-  // Format full address for display
-  const formatFullAddress = (address: string): string => {
-    if (!address) return '';
-    return address.startsWith('0x') ? address : `0x${address}`;
   };
 
   // Format address for shorter display
@@ -89,12 +128,10 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   // Get Google search URL
-  const getGoogleSearchUrl = (address: string, chain: string): string => {
+  const getGoogleSearchUrl = (address: string): string => {
     const addr = formatFullAddress(address);
-    return `https://www.google.com/search?q=${addr}+${chain}+smart+contract`;
+    return `https://www.google.com/search?q=${addr}`;
   };
-
-  const fullAddress = formatFullAddress(contract.address);
 
   // Generate roman numerals for visual decoration
   const generateRomanNumeral = (n: number): string => {
@@ -116,10 +153,37 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   // Check for existing attestations
-  const checkAttestations = async () => {
+  const checkAttestations = async (forceCheck: boolean = false) => {
+    // If already checking, don't trigger again
+    if (isCheckingAttestations) return;
+    
+    // Check cache first (unless force check is requested)
+    if (!forceCheck && attestationCache[fullAddress]) {
+      const cachedAttestations = attestationCache[fullAddress];
+      setAttestations(cachedAttestations);
+      setHasAttestations(cachedAttestations.length > 0);
+      setAttestationCount(cachedAttestations.length);
+      if (cachedAttestations.length > 0) {
+        setShowAttestationList(true);
+      }
+      return;
+    }
+    
     setIsCheckingAttestations(true);
     try {
-      const fetchedAttestations = await fetchAttestationsByContract(fullAddress);
+      // Clear previous attestations when forcing a check to show the loading state
+      if (forceCheck) {
+        setAttestations([]);
+      }
+      
+      const fetchedAttestations = await fetchAttestationsByContract(
+        fullAddress, 
+        forceCheck ? { timestamp: Date.now() } : undefined
+      );
+      
+      // Cache the results
+      attestationCache[fullAddress] = fetchedAttestations;
+      
       setAttestations(fetchedAttestations);
       setHasAttestations(fetchedAttestations.length > 0);
       setAttestationCount(fetchedAttestations.length);
@@ -196,10 +260,12 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   return (
-    <div className="contract-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:shadow-lg transition-all duration-200"
-         style={{
-           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.08'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-         }}
+    <div 
+      ref={cardRef}
+      className="contract-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:shadow-lg transition-all duration-200"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.08'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+      }}
     >
 
       {/* Document header */}
@@ -212,24 +278,40 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
         <div className="flex items-center space-x-2">
           <span className="font-serif text-white text-xs tracking-wider">CONTRACT №</span>
           <span className="text-white text-xs font-medium">{generateRomanNumeral(Math.floor(contract.txCount / 1000) + 1)}</span>
+          {hasBeenInView && (
+            <span className="ml-1 h-1.5 w-1.5 rounded-full bg-green-400 shadow-sm" title="Auto-checked for attestations"></span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-white font-serif italic">{getFormattedChainName(contract.chain)}</div>
           <button
-            onClick={checkAttestations}
+            onClick={() => checkAttestations(true)}
             disabled={isCheckingAttestations}
-            className="text-white bg-white/20 hover:bg-white/30 rounded-full p-1 transition-all duration-200"
-            title="Check for existing attestations"
+            className="text-white bg-white/20 hover:bg-white/30 rounded-md px-2 py-1 text-xs flex items-center gap-1 transition-all duration-200"
+            title={hasAttestations ? "Check again for attestations" : "Check for existing attestations"}
           >
             {isCheckingAttestations ? (
-              <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <>
+                <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Checking...</span>
+              </>
+            ) : hasAttestations ? (
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh ({attestationCount})</span>
+              </>
             ) : (
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Check Attestations</span>
+              </>
             )}
           </button>
         </div>
@@ -425,6 +507,15 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
                 </svg>
                 Find Source Code
               </a>
+              <a 
+                href={getGoogleSearchUrl(contract.address)} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-gray-50 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200 text-xs flex items-center transition-colors"
+              >
+                Find on Google
+              </a>
+              
             </div>
 
             {/* Attestation button */}
@@ -441,6 +532,8 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
                       chainId: contract.chain,
                       decodedDataJson: ''
                     });
+                  } else {
+                    onSelect();
                   }
                 }}
                 className="relative group overflow-hidden bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-xl text-sm font-serif flex items-center transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"

@@ -122,7 +122,7 @@ export default function AttestPage() {
                 <span className="text-sm px-2 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">Click to expand</span>
               </div>
               <p className="text-gray-700 mt-2">
-                Explore popular unlabeled smart contracts and help the community by providing attestations.
+                Explore unlabeled smart contracts with high transaction volume and gas spent and help the community by providing attestations.
               </p>
             </div>
             <div className={`transform transition-transform duration-200 ${vibeAttestVisible ? 'rotate-180' : ''} bg-gray-50 p-2 rounded-full group-hover:bg-gray-100`}>

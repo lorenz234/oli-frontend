@@ -1,4 +1,4 @@
-import { ChainData, ChainKey, Contract, UnlabeledContract } from '@/types/unlabeledContracts';
+import { ChainData, ChainKey, UnlabeledContract } from '@/types/unlabeledContracts';
 
 // Chain URLs configuration - matches the Python script
 const CHAIN_BLOCKSPACE_URLS: Record<ChainKey, string> = {

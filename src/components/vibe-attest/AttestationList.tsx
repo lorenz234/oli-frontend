@@ -30,13 +30,11 @@ interface ParsedAttestation {
 
 interface AttestationListProps {
   attestations: Attestation[];
-  contractAddress: string;
   onSelectAttestation: (attestation: ParsedAttestation) => void;
 }
 
 const AttestationList: React.FC<AttestationListProps> = ({ 
   attestations, 
-  contractAddress,
   onSelectAttestation
 }) => {
   const [expandedAttestation, setExpandedAttestation] = useState<string | null>(null);

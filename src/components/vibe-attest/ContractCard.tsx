@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { UnlabeledContract } from '@/types/unlabeledContracts';
 import { CHAINS } from '@/constants/chains';
 import { fetchAttestationsByContract, Attestation } from '@/services/attestationService';
@@ -43,38 +43,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   }
 
   const fullAddress = formatFullAddress(contract.address);
-
-  // Setup Intersection Observer to detect when card is in view
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting && !hasBeenInView) {
-          setHasBeenInView(true);
-          // Auto-check for attestations when the card comes into view
-          if (!isCheckingAttestations && attestations.length === 0) {
-            checkAttestations(false); // Use cache if available for automatic checks
-          }
-        }
-      },
-      {
-        root: null, // Use viewport as root
-        rootMargin: '0px',
-        threshold: 0.5, // Trigger when at least 50% of the card is visible
-      }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => {
-      if (cardRef.current) {
-        observer.unobserve(cardRef.current);
-      }
-    };
-  }, [hasBeenInView, isCheckingAttestations, attestations.length, fullAddress]);
-
+  
   // Get chain metadata
   const getChainMetadata = (chainId: string) => {
     return CHAINS.find(chain => chain.id === chainId);
@@ -88,6 +57,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   // Format address for shorter display
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatShortAddress = (address: string): string => {
     if (!address) return '';
     const addr = address.startsWith('0x') ? address : `0x${address}`;
@@ -153,7 +123,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   // Check for existing attestations
-  const checkAttestations = async (forceCheck: boolean = false) => {
+  const checkAttestations = useCallback(async (forceCheck: boolean = false) => {
     // If already checking, don't trigger again
     if (isCheckingAttestations) return;
     
@@ -195,7 +165,39 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
     } finally {
       setIsCheckingAttestations(false);
     }
-  };
+  }, [fullAddress, isCheckingAttestations]);
+
+  // Setup Intersection Observer to detect when card is in view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasBeenInView) {
+          setHasBeenInView(true);
+          // Auto-check for attestations when the card comes into view
+          if (!isCheckingAttestations && attestations.length === 0) {
+            checkAttestations(false); // Use cache if available for automatic checks
+          }
+        }
+      },
+      {
+        root: null, // Use viewport as root
+        rootMargin: '0px',
+        threshold: 0.5, // Trigger when at least 50% of the card is visible
+      }
+    );
+
+    const currentCardRef = cardRef.current;
+    if (currentCardRef) {
+      observer.observe(currentCardRef);
+    }
+
+    return () => {
+      if (currentCardRef) {
+        observer.unobserve(currentCardRef);
+      }
+    };
+  }, [hasBeenInView, isCheckingAttestations, attestations.length, checkAttestations]);
 
   // Handle a selected attestation for editing/confirming
   const handleSelectAttestation = (attestation: ParsedAttestation) => {
@@ -264,7 +266,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
       ref={cardRef}
       className="contract-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:shadow-lg transition-all duration-200"
       style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.08'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.08'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}
     >
 
@@ -391,7 +393,6 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
                   <div className="mt-3 pt-3 border-t border-blue-200">
                     <AttestationList 
                       attestations={attestations}
-                      contractAddress={fullAddress}
                       onSelectAttestation={handleSelectAttestation}
                     />
                   </div>
@@ -460,7 +461,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
               <>
                 Additional attestations are needed to fully verify this contract. Your participation will help:
                 <ul className="mt-2 list-disc list-inside space-y-1 text-gray-600">
-                  <li>Strengthen consensus on the contract's purpose and functionality</li>
+                  <li>Strengthen consensus on the contract&apos;s purpose and functionality</li>
                   <li>Confirm existing attestation data</li>
                   <li>Provide additional context or metadata</li>
                   <li>Build a more comprehensive view of this contract</li>
@@ -470,7 +471,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
               <>
                 This contract requires proper identification and classification. Your attestation will help:
                 <ul className="mt-2 list-disc list-inside space-y-1 text-gray-600">
-                  <li>Identify the contract's purpose and functionality</li>
+                  <li>Identify the contract&apos;s purpose and functionality</li>
                   <li>Verify its ownership and project affiliation</li>
                   <li>Categorize its usage type</li>
                   <li>Improve blockchain transparency</li>

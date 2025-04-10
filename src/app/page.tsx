@@ -129,12 +129,12 @@ const HomePage: FC = () => {
               {/* Community Calls Button */}
               <div className="mt-3 sm:mt-0 sm:ml-3">
                 <a
-                  href="https://calendar.google.com/calendar/u/3?cid=MmQ0MzYxNzQ3ZGFiY2M3ZDJkZjk0NjZiYmY3MmNmZDUwZTNjMjE2OTQ4YzgyNmI4OTBmYjYyN2VmNGRjNjQ4OEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
+                  href="https://t.me/olilabels"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center px-8 py-3 border border-gray-300 font-medium rounded-xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  Join Community Calls
+                  Join our Telegram Group
                 </a>
               </div>
             </div>

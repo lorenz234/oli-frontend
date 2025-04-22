@@ -21,7 +21,7 @@ const BulkAttestationScripts = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Bulk On-chain Python</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Bulk Onchain Python</h3>
                 <p className="text-sm text-gray-600">For Python developers with on-chain needs</p>
               </div>
             </div>
@@ -72,7 +72,7 @@ const BulkAttestationScripts = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Bulk Off-chain Python</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Bulk Offchain Python</h3>
                 <p className="text-sm text-gray-600">For Python developers with gas-free needs</p>
               </div>
             </div>
@@ -123,7 +123,7 @@ const BulkAttestationScripts = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Bulk Off-chain TypeScript</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Bulk Offchain TypeScript</h3>
                 <p className="text-sm text-gray-600">For TypeScript/JavaScript developers</p>
               </div>
             </div>

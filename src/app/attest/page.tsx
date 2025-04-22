@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AttestationForm from '@/components/attestation/AttestationForm';
 import BulkAttestationForm from '@/components/attestation/BulkAttestationForm';
 import BulkAttestationScripts from '@/components/attestation/BulkAttestationScripts';
@@ -12,6 +12,12 @@ export default function AttestPage() {
   const [selectedContract, setSelectedContract] = useState<UnlabeledContract | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const [vibeAttestVisible, setVibeAttestVisible] = useState<boolean>(false);
+  
+  // Create refs for each section
+  const singleAttestationRef = useRef<HTMLDivElement>(null);
+  const bulkAttestationRef = useRef<HTMLDivElement>(null);
+  const bulkScriptsRef = useRef<HTMLDivElement>(null);
+  const vibeAttestRef = useRef<HTMLDivElement>(null);
 
   const handleSelectContract = (contract: UnlabeledContract) => {
     setSelectedContract(contract);
@@ -27,6 +33,22 @@ export default function AttestPage() {
     }, 300);
   };
 
+  // Function to scroll to an element and center it
+  const scrollToElement = (elementRef: React.RefObject<any>, hash: string, block: ScrollLogicalPosition = 'center') => {
+    // Update URL with hash
+    window.history.pushState(null, '', `#${hash}`);
+    
+    // Scroll the element into view
+    if (elementRef.current) {
+      setTimeout(() => {
+        elementRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: block
+        });
+      }, 100);
+    }
+  };
+
   // Handle window resize for mobile view
   useEffect(() => {
     const handleResize = () => {
@@ -40,8 +62,48 @@ export default function AttestPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [sidebarVisible]);
 
+  // Check URL hash on load to scroll to right section
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          // If it's the vibe-attest section, open dropdown first
+          if (hash === 'vibe-attest') {
+            setVibeAttestVisible(true);
+            
+            // Allow time for the dropdown to fully open
+            setTimeout(() => {
+              // Scroll to position the first contract near the top
+              const contractsList = document.querySelector('.unlabeled-contracts-list');
+              if (contractsList) {
+                contractsList.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start'
+                });
+              } else {
+                // Fallback to the section header
+                element.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start'
+                });
+              }
+            }, 300);
+          } else {
+            // For other sections, center them
+            element.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+          }
+        }
+      }, 500);
+    }
+  }, []);
+
   return (
-    <main className="max-w-7xl mx-auto p-8 space-y-8">
+    <main className="max-w-7xl mx-auto p-8 space-y-16">
       {/* Introduction Section */}
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-4 text-gray-900">Attestation Hub</h1>
@@ -54,10 +116,7 @@ export default function AttestPage() {
           <div 
             className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-blue-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
             onClick={() => {
-              window.scrollTo({
-                top: document.getElementById('single-attestation')?.offsetTop || 0,
-                behavior: 'smooth'
-              });
+              scrollToElement(singleAttestationRef, 'single-attestation');
             }}
           >
             <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
@@ -101,10 +160,7 @@ export default function AttestPage() {
           <div 
             className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-green-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
             onClick={() => {
-              window.scrollTo({
-                top: document.getElementById('bulk-attestation')?.offsetTop || 0,
-                behavior: 'smooth'
-              });
+              scrollToElement(bulkAttestationRef, 'bulk-attestation');
             }}
           >
             <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
@@ -148,10 +204,7 @@ export default function AttestPage() {
           <div 
             className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-purple-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
             onClick={() => {
-              window.scrollTo({
-                top: document.getElementById('bulk-scripts')?.offsetTop || 0,
-                behavior: 'smooth'
-              });
+              scrollToElement(bulkScriptsRef, 'bulk-scripts');
             }}
           >
             <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-4">
@@ -195,11 +248,49 @@ export default function AttestPage() {
           <div 
             className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-pink-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
             onClick={() => {
+              // First make sure dropdown is open, then scroll to it
+              const wasAlreadyOpen = vibeAttestVisible;
               setVibeAttestVisible(true);
-              window.scrollTo({
-                top: document.getElementById('vibe-attest')?.offsetTop || 0,
-                behavior: 'smooth'
-              });
+              
+              // Update URL with hash
+              window.history.pushState(null, '', '#vibe-attest');
+              
+              // Allow time for the dropdown to open before scrolling
+              setTimeout(() => {
+                if (wasAlreadyOpen) {
+                  // If already open, just scroll to position the contracts list at the top
+                  const contractsList = document.querySelector('.unlabeled-contracts-list');
+                  if (contractsList) {
+                    contractsList.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  } else {
+                    // Fallback to section if list can't be found
+                    vibeAttestRef.current?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  }
+                } else {
+                  // If it wasn't open, first ensure the section is visible
+                  vibeAttestRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                  
+                  // Then after animation completes, scroll to the contracts list
+                  setTimeout(() => {
+                    const contractsList = document.querySelector('.unlabeled-contracts-list');
+                    if (contractsList) {
+                      contractsList.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                      });
+                    }
+                  }, 400);
+                }
+              }, wasAlreadyOpen ? 100 : 300);
             }}
           >
             <div className="flex items-center justify-center w-12 h-12 bg-pink-100 rounded-full mb-4">
@@ -256,42 +347,44 @@ export default function AttestPage() {
       </div>
 
       {/* Single Address Attestation Section */}
-      <div id="single-attestation" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
-        <div className="border-b border-gray-200">
-          <div className="py-6 px-6">
-            <h2 className="text-2xl font-bold text-gray-900">Single Address Attestation</h2>
-            <p className="text-gray-600 mt-2">
-              Use this form to attest a single blockchain address. You can add multiple tags to the same address.
-            </p>
-          </div>
+      <div id="single-attestation" ref={singleAttestationRef} className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden border-t-4 border-blue-500 mt-16">
+        <div className="p-6 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Single Address Attestation</h2>
+          <p className="text-gray-600 mt-2">
+            Use this form to attest a single blockchain address. You can add multiple tags to the same address.
+          </p>
         </div>
         <AttestationForm />
       </div>
       
       {/* Bulk Address Attestation via CSV Section */}
-      <div id="bulk-attestation" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
-        <div className="border-b border-gray-200">
-          <div className="py-6 px-6">
-            <h2 className="text-2xl font-bold text-gray-900">Bulk Address Attestation via CSV</h2>
-            <p className="text-gray-600 mt-2">
-              Upload a CSV file with multiple addresses to create attestations in bulk. Limited to 50 addresses per upload.
-            </p>
-          </div>
+      <div id="bulk-attestation" ref={bulkAttestationRef} className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden border-t-4 border-green-500 mt-16">
+        <div className="p-6 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Bulk Address Attestation via CSV</h2>
+          <p className="text-gray-600 mt-2">
+            Upload a CSV file with multiple addresses to create attestations in bulk. Limited to 50 addresses per upload.
+          </p>
         </div>
         <BulkAttestationForm />
       </div>
 
       {/* Bulk Scripts Section */}
-      <div id="bulk-scripts" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+      <div id="bulk-scripts" ref={bulkScriptsRef} className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden border-t-4 border-purple-500 mt-16">
+        <div className="p-6 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Bulk Attestation Scripts</h2>
+          <p className="text-gray-600 mt-2">
+            Use our scripts for large-scale attestation needs.
+          </p>
+        </div>
         <BulkAttestationScripts />
       </div>
 
       {/* Vibe Attest Section */}
-      <div id="vibe-attest" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+      <div id="vibe-attest" ref={vibeAttestRef} className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden border-t-4 border-pink-500 mt-16">
         <div className="p-6">
           <button
             onClick={() => setVibeAttestVisible(!vibeAttestVisible)}
-            className="w-full flex justify-between items-center text-left p-4 hover:bg-gray-50 rounded-xl transition-all duration-200 group border-2 border-transparent hover:border-gray-100"
+            className="w-full flex justify-between items-center text-left py-4 px-4 hover:bg-gray-50 rounded-xl transition-all duration-200 group"
           >
             <div>
               <div className="flex items-center gap-2">
@@ -313,10 +406,12 @@ export default function AttestPage() {
             <div className="mt-6 border-t pt-6">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 transition-all duration-300">
                 <div className={`transition-all duration-300 ease-in-out ${sidebarVisible ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
-                  <UnlabeledContractsList 
-                    onSelectContract={handleSelectContract}
-                    sidebarVisible={sidebarVisible} 
-                  />
+                  <div className="unlabeled-contracts-list">
+                    <UnlabeledContractsList 
+                      onSelectContract={handleSelectContract}
+                      sidebarVisible={sidebarVisible} 
+                    />
+                  </div>
                 </div>
                 
                 <div className={`transition-all duration-300 ease-in-out ${sidebarVisible ? 'lg:col-span-4 block' : 'lg:col-span-0 hidden'} relative`}>

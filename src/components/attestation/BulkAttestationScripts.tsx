@@ -22,7 +22,7 @@ const BulkAttestationScripts = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Bulk Onchain Python</h3>
-                <p className="text-sm text-gray-600">For Python developers with on-chain needs</p>
+                <p className="text-sm text-gray-600">For Python developers with onchain needs</p>
               </div>
             </div>
           </div>
@@ -32,13 +32,13 @@ const BulkAttestationScripts = () => {
                 <svg className="w-4 h-4 mt-0.5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                Submit thousands of attestations on-chain
+                Submit thousands of attestations onchain
               </li>
               <li className="flex items-start">
                 <svg className="w-4 h-4 mt-0.5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                Fully verifiable on-chain data
+                Fully verifiable onchain data
               </li>
               <li className="flex items-start">
                 <svg className="w-4 h-4 mt-0.5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,7 +169,7 @@ const BulkAttestationScripts = () => {
         <h3 className="text-base font-semibold text-gray-900 mb-2">When to use bulk scripts?</h3>
         <p className="text-gray-700 mb-3">
           These scripts are ideal when you need to submit more than 50 attestations or want to integrate attestation into your 
-          existing data pipeline. Choose on-chain for maximum verifiability or off-chain for gas-free operation.
+          existing data pipeline. Choose onchain for maximum verifiability or offchain for gas-free operation.
         </p>
         <Link 
           href="https://github.com/openlabelsinitiative/OLI/tree/main/2_label_pool/tooling_write" 

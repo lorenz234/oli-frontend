@@ -339,7 +339,7 @@ export default function AttestPage() {
             What is an attestation?
           </h3>
           <p className="text-gray-700">
-            Attestations are on-chain verifiable statements that assign specific tags or properties to blockchain addresses. 
+            Attestations are onchain verifiable statements that assign specific tags or properties to blockchain addresses. 
             By providing attestations, you help create a more transparent blockchain ecosystem where addresses can be 
             identified by their purpose, ownership, or other relevant properties.
           </p>

@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import AttestationForm from '@/components/attestation/AttestationForm';
 import BulkAttestationForm from '@/components/attestation/BulkAttestationForm';
+import BulkAttestationScripts from '@/components/attestation/BulkAttestationScripts';
 import UnlabeledContractsList from '@/components/vibe-attest/UnlabeledContractsList';
 import VibeAttestSidebar from '@/components/vibe-attest/VibeAttestSidebar';
 import { UnlabeledContract } from '@/types/unlabeledContracts';
 
 export default function AttestPage() {
-  const [mode, setMode] = useState<'single' | 'bulk'>('single');
   const [selectedContract, setSelectedContract] = useState<UnlabeledContract | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const [vibeAttestVisible, setVibeAttestVisible] = useState<boolean>(false);
@@ -41,76 +40,254 @@ export default function AttestPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [sidebarVisible]);
 
-  // Get the appropriate page title based on the current mode
-  const getPageTitle = () => {
-    switch(mode) {
-      case 'single':
-        return 'Assign Tags to Addresses';
-      case 'bulk':
-        return 'Bulk Tag Assignment';
-      default:
-        return 'Assign Tags to Addresses';
-    }
-  };
-
   return (
     <main className="max-w-7xl mx-auto p-8 space-y-8">
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
-        <div className="py-6 px-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Bulk Attestation Options</h2>
-          <p className="text-gray-700 mb-4">
-            Need to submit more than 50 attestations programmatically as part of your data pipeline? You can use our Python and TypeScript scripts for larger datasets and pipelines. Offchain attestations are also possible (0 gas fees).
-          </p>
-          <Link 
-            href="https://github.com/openlabelsinitiative/OLI/tree/main/2_label_pool/tooling_write" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 font-medium"
+      {/* Introduction Section */}
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-4 text-gray-900">Attestation Hub</h1>
+        <p className="text-gray-700 mb-2">
+          Welcome to the OLI Attestation Hub, where you can assign tags to blockchain addresses and smart contracts to improve transparency and discoverability.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* Card 1: Single Address Attestation */}
+          <div 
+            className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-blue-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
+            onClick={() => {
+              window.scrollTo({
+                top: document.getElementById('single-attestation')?.offsetTop || 0,
+                behavior: 'smooth'
+              });
+            }}
           >
-            Access bulk attestation scripts →
-          </Link>
-        </div>
-      </div>
-      
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
-        <div className="border-b border-gray-200">
-          <div className="flex justify-between items-center py-6 px-6">
-            <h2 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h2>
-            
-            <div className="flex">
-              <button
-                className={`px-4 py-2 text-sm font-medium ${
-                  mode === 'single' 
-                    ? 'bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-white'
-                    : 'text-gray-500 hover:text-gray-700 bg-white border border-gray-300'
-                } rounded-l-lg ${mode === 'single' ? '' : 'border-r-0'}`}
-                onClick={() => setMode('single')}
-              >
-                Single Address
-              </button>
-              <button
-                className={`px-4 py-2 text-sm font-medium ${
-                  mode === 'bulk' 
-                    ? 'bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-white'
-                    : 'text-gray-500 hover:text-gray-700 bg-white border border-gray-300'
-                } rounded-r-lg`}
-                onClick={() => setMode('bulk')}
-              >
-                Multiple Addresses
-              </button>
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Single Address Attestation</h3>
+            <p className="text-gray-600 mb-2">
+              Assign tags to an individual blockchain address or smart contract.
+            </p>
+            <ul className="mb-4 space-y-1 text-sm text-gray-600 flex-grow">
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                One address at a time
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Multiple tags per address
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Quick and simple interface
+              </li>
+            </ul>
+            <span className="text-blue-600 font-medium inline-flex items-center mt-auto">
+              Go to single attestation
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </span>
+          </div>
+          
+          {/* Card 2: CSV Upload */}
+          <div 
+            className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-green-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
+            onClick={() => {
+              window.scrollTo({
+                top: document.getElementById('bulk-attestation')?.offsetTop || 0,
+                behavior: 'smooth'
+              });
+            }}
+          >
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">CSV Upload</h3>
+            <p className="text-gray-600 mb-2">
+              Upload a CSV file with multiple addresses to attest at once.
+            </p>
+            <ul className="mb-4 space-y-1 text-sm text-gray-600 flex-grow">
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Up to 50 attestations at once
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Easy upload through UI
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Perfect for analysts and projects
+              </li>
+            </ul>
+            <span className="text-green-600 font-medium inline-flex items-center mt-auto">
+              Go to CSV upload
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </span>
+          </div>
+          
+          {/* Card 3: Bulk Attestation Scripts */}
+          <div 
+            className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-purple-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
+            onClick={() => {
+              window.scrollTo({
+                top: document.getElementById('bulk-scripts')?.offsetTop || 0,
+                behavior: 'smooth'
+              });
+            }}
+          >
+            <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-4">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Bulk Attestation Scripts</h3>
+            <p className="text-gray-600 mb-2">
+              Use our scripts for large-scale attestation needs.
+            </p>
+            <ul className="mb-4 space-y-1 text-sm text-gray-600 flex-grow">
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                50+ attestations support
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Python & TypeScript options
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Pipeline integration ready
+              </li>
+            </ul>
+            <span className="text-purple-600 font-medium inline-flex items-center mt-auto">
+              Explore scripts
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </span>
+          </div>
+          
+          {/* Card 4: Vibe Attest */}
+          <div 
+            className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-6 border-l-4 border-pink-500 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col h-full"
+            onClick={() => {
+              setVibeAttestVisible(true);
+              window.scrollTo({
+                top: document.getElementById('vibe-attest')?.offsetTop || 0,
+                behavior: 'smooth'
+              });
+            }}
+          >
+            <div className="flex items-center justify-center w-12 h-12 bg-pink-100 rounded-full mb-4">
+              <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Discover & Attest</h3>
+            <p className="text-gray-600 mb-2">
+              Browse high-value unlabeled contracts to attest.
+            </p>
+            <ul className="mb-4 space-y-1 text-sm text-gray-600 flex-grow">
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Curated high-impact contracts
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Prioritized by transaction volume
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mt-0.5 mr-2 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Ideal for community contributors
+              </li>
+            </ul>
+            <span className="text-pink-600 font-medium inline-flex items-center mt-auto">
+              Explore contracts
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </span>
           </div>
         </div>
         
-        {mode === 'single' ? (
-          <AttestationForm />
-        ) : (
-          <BulkAttestationForm />
-        )}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 mb-8">
+          <h3 className="text-lg font-semibold mb-2 flex items-center text-gray-900">
+            <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            What is an attestation?
+          </h3>
+          <p className="text-gray-700">
+            Attestations are on-chain verifiable statements that assign specific tags or properties to blockchain addresses. 
+            By providing attestations, you help create a more transparent blockchain ecosystem where addresses can be 
+            identified by their purpose, ownership, or other relevant properties.
+          </p>
+        </div>
       </div>
 
-      {/* New Vibe Attest Section */}
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+      {/* Single Address Attestation Section */}
+      <div id="single-attestation" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+        <div className="border-b border-gray-200">
+          <div className="py-6 px-6">
+            <h2 className="text-2xl font-bold text-gray-900">Single Address Attestation</h2>
+            <p className="text-gray-600 mt-2">
+              Use this form to attest a single blockchain address. You can add multiple tags to the same address.
+            </p>
+          </div>
+        </div>
+        <AttestationForm />
+      </div>
+      
+      {/* Bulk Address Attestation via CSV Section */}
+      <div id="bulk-attestation" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+        <div className="border-b border-gray-200">
+          <div className="py-6 px-6">
+            <h2 className="text-2xl font-bold text-gray-900">Bulk Address Attestation via CSV</h2>
+            <p className="text-gray-600 mt-2">
+              Upload a CSV file with multiple addresses to create attestations in bulk. Limited to 50 addresses per upload.
+            </p>
+          </div>
+        </div>
+        <BulkAttestationForm />
+      </div>
+
+      {/* Bulk Scripts Section */}
+      <div id="bulk-scripts" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+        <BulkAttestationScripts />
+      </div>
+
+      {/* Vibe Attest Section */}
+      <div id="vibe-attest" className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
         <div className="p-6">
           <button
             onClick={() => setVibeAttestVisible(!vibeAttestVisible)}
@@ -118,7 +295,7 @@ export default function AttestPage() {
           >
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-gray-900">Not sure what to attest?</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Discover & Attest</h2>
                 <span className="text-sm px-2 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">Click to expand</span>
               </div>
               <p className="text-gray-700 mt-2">

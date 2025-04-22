@@ -123,7 +123,7 @@ const UnlabeledContractsList: React.FC<UnlabeledContractsListProps> = ({
   `;
 
   return (
-    <div className="rounded-xl bg-white shadow-md overflow-hidden border border-gray-100">
+    <div className="rounded-xl bg-white shadow-md overflow-hidden border border-gray-100 min-h-[700px]">
       {/* Header with title */}
       <div className="px-4 py-3 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 border-b border-gray-200">
         <h2 className="text-lg font-bold text-gray-900">
@@ -164,10 +164,10 @@ const UnlabeledContractsList: React.FC<UnlabeledContractsListProps> = ({
                 id="chain-filter"
                 value={selectedChain}
                 onChange={(e) => setSelectedChain(e.target.value)}
-                className="w-full border border-gray-200 rounded-md text-sm h-8 px-2 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500/30 transition-all duration-200"
+                className="w-full border border-gray-200 rounded-md text-sm h-8 px-2 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500/30 transition-all duration-200 text-gray-700 placeholder-gray-500"
               >
-                {chains.map((chain) => (
-                  <option key={chain} value={chain}>
+                {chains.map((chain, index) => (
+                  <option key={`chain-${chain}-${index}`} value={chain} className="text-gray-900">
                     {chain === 'all' ? 'All Chains' : chain.charAt(0).toUpperCase() + chain.slice(1).replace('_', ' ')}
                   </option>
                 ))}
@@ -333,8 +333,8 @@ const UnlabeledContractsList: React.FC<UnlabeledContractsListProps> = ({
         </div>
       ) : (
         <div className="divide-y divide-gray-200">
-          {sortedContracts.map((contract) => (
-            <div key={`${contract.chain}-${contract.address}-${contract.timeRange}`} className="px-4 py-2">
+          {sortedContracts.map((contract, index) => (
+            <div key={`${contract.chain}-${contract.address}-${contract.dayRange || 'all'}-${index}`} className="px-4 py-2">
               <ContractCard
                 contract={contract}
                 onSelect={() => onSelectContract(contract)}

@@ -14,7 +14,8 @@ const InputWithCheck: React.FC<InputWithCheckProps> = ({
   children, 
   error 
 }) => {
-  const showCheck = value && isValid;
+  // Only show check mark if value is truthy (not empty, null, undefined, etc.) and valid
+  const showCheck = Boolean(value) && isValid;
   
   return (
     <div className="relative">

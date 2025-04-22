@@ -163,7 +163,10 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
   };
 
   const handleChange = (fieldId: string, value: FieldValue) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
+    // If the value is null, undefined, or empty, store as empty string
+    const normalizedValue = value === null || value === undefined ? '' : value;
+    
+    setFormData(prev => ({ ...prev, [fieldId]: normalizedValue }));
     
     // Clear errors when user changes input
     if (errors[fieldId]) {
@@ -296,7 +299,7 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
         />
 
         <InputWithCheck
-          value={formData[field.id] !== undefined && formData[field.id] !== ''}
+          value={formData[field.id] !== undefined && formData[field.id] !== '' && formData[field.id] !== null}
           isValid={!errors[field.id]}
           error={errors[field.id]}
         >
@@ -384,18 +387,18 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
 
           {field.type === 'radio' && (
             <div className="flex gap-4 mt-1">
-              {field.options?.map(option => (
-                <div className="flex items-center" key={option.value}>
+              {field.options?.map((option, index) => (
+                <div className="flex items-center" key={`${field.id}-${option.value}-${index}`}>
                   <input
                     type="radio"
-                    id={`${field.id}-${option.value}`}
+                    id={`${field.id}-${option.value}-${index}`}
                     name={field.id}
                     value={option.value}
                     checked={formData[field.id] === (option.value === 'true')}
                     onChange={(e) => handleChange(field.id, e.target.value === 'true')}
                     className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label htmlFor={`${field.id}-${option.value}`} className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor={`${field.id}-${option.value}-${index}`} className="ml-2 block text-sm text-gray-700">
                     {option.label}
                   </label>
                 </div>

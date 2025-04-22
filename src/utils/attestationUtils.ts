@@ -8,7 +8,7 @@ export const prepareTags = (formData: Record<string, any>) => {
   
   Object.entries(formData)
     .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
-      (value !== undefined && value !== ''))
+      (value !== undefined && value !== '' && value !== null))
     .forEach(([key, value]) => {
       // Convert specific fields to integers
       if (key === 'erc20.decimals' || key === 'version') {

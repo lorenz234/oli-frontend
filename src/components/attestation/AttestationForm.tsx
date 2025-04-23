@@ -344,15 +344,18 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
               {field.options?.find(opt => opt.value === prefilledChainId)?.label || prefilledChainId}
             </div>
           ) : field.type === 'select' && (
-            <CustomDropdown
-              id={field.id}
-              options={field.options || []}
-              value={getStringValue(formData[field.id])}
-              onChange={(value) => handleChange(field.id, value)}
-              placeholder={field.placeholder || `Select ${field.label}`}
-              required={field.required}
-              error={errors[field.id]}
-            />
+            <div className="dropdown-wrapper" style={{ position: 'relative', zIndex: 50 }}>
+              <CustomDropdown
+                id={field.id}
+                options={field.options || []}
+                value={getStringValue(formData[field.id])}
+                onChange={(value) => handleChange(field.id, value)}
+                placeholder={field.placeholder || `Select ${field.label}`}
+                required={field.required}
+                error={errors[field.id]}
+                isProjectDropdown={field.id === 'owner_project'}
+              />
+            </div>
           )}
 
           {field.type === 'multiselect' && (
@@ -434,7 +437,36 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 pl-6 pb-6 pr-12">
+      <form onSubmit={handleSubmit} className="space-y-4 pl-6 pb-6 pr-12 overflow-visible">
+        <style jsx global>{`
+          /* Ensure dropdowns can overflow their containers */
+          .dropdown-wrapper {
+            position: relative;
+            z-index: 999 !important;
+          }
+          /* Add layers to properly stack dropdowns */
+          form > div {
+            position: relative;
+            overflow: visible !important;
+          }
+          /* Override any parent constraints */
+          .dropdown-container > div {
+            position: static !important;
+          }
+          /* Make sure dropdown menus aren't constrained */
+          .dropdown-container ul {
+            position: absolute;
+            z-index: 9999;
+            overflow: visible;
+          }
+          /* Override any overflow hidden */
+          #single-attestation, 
+          #single-attestation > div,
+          .max-w-7xl {
+            overflow: visible !important;
+          }
+        `}</style>
+        
         {getVisibleFields().map(renderField)}
 
         {/* Submit Button */}

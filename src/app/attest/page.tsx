@@ -354,7 +354,9 @@ export default function AttestPage() {
             Use this form to attest a single blockchain address. You can add multiple tags to the same address.
           </p>
         </div>
+        <div className="pb-1">
         <AttestationForm />
+        </div>
       </div>
       
       {/* Bulk Address Attestation via CSV Section */}

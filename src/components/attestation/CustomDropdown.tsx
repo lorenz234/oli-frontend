@@ -1,5 +1,6 @@
 // components/attestation/CustomDropdown.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 
 // Enhanced DropdownOption to support grouping and descriptions
 interface DropdownOption {
@@ -19,6 +20,7 @@ interface CustomDropdownProps {
   className?: string;
   error?: string;
   showGroups?: boolean; // Option to show or hide group headers
+  isProjectDropdown?: boolean; // New prop to identify if this is the Owner Project dropdown
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
@@ -30,7 +32,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   required = false,
   className = '',
   error,
-  showGroups = true
+  showGroups = true,
+  isProjectDropdown = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,8 +87,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   // Handle toggling the dropdown
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
-    if (!isOpen) {
-      // Clear search when opening
+    if (isOpen) {
+      // Clear search when closing
       setSearchTerm('');
     }
   };
@@ -160,8 +163,31 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
     </li>
   );
 
+  // Render project not found message
+  const renderProjectNotFound = () => (
+    <div className="px-3 py-4 text-sm">
+      <p className="font-medium text-gray-700 mb-2">
+        Couldn&apos;t find your project?
+      </p>
+      <ul className="list-disc pl-5 text-gray-600 space-y-1 mb-3">
+        <li>Check if you&apos;ve spelled the project name correctly</li>
+        <li>Try searching by the project&apos;s GitHub name</li>
+        <li>Search with different keywords related to your project</li>
+      </ul>
+      <p className="text-gray-700 mb-2">
+        If you still can&apos;t find your project, you can add it to our directory:
+      </p>
+      <Link 
+        href="/project" 
+        className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium transition-colors"
+      >
+        Add New Project
+      </Link>
+    </div>
+  );
+
   return (
-    <div ref={dropdownRef} className={`relative ${className}`}>
+    <div ref={dropdownRef} className={`relative ${className}`} style={{ overflow: 'visible !important' }}>
       <button
         type="button"
         id={id}
@@ -198,29 +224,44 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         ))}
       </select>
 
-      {/* Dropdown menu */}
+      {/* Dropdown menu with absolute positioning */}
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-          {/* Search input - sticky at the top with no gap */}
-          <div className="px-3 py-2 sticky top-0 z-10 bg-white border-b shadow-sm">
-            <input
-              ref={inputRef}
-              type="text"
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
+        <div 
+          className="absolute z-[500] left-0 right-0" 
+          style={{ 
+            position: 'absolute', 
+            top: '100%', 
+            left: '0',
+            width: '100%',
+            minWidth: '320px',
+            marginTop: '4px',
+            zIndex: 9999
+          }}
+        >
+          <div className="bg-white shadow-lg max-h-60 rounded-md text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+            {/* Search input - sticky at the top with no gap */}
+            <div className="px-3 py-2 sticky top-0 z-10 bg-white border-b shadow-sm">
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            
+            <ul tabIndex={-1} role="listbox" aria-labelledby={id} aria-activedescendant={value ? `${id}-option-${value}` : undefined}>
+              {filteredOptions.length === 0 ? (
+                isProjectDropdown && searchTerm ? 
+                renderProjectNotFound() : 
+                <li className="px-3 py-2 text-gray-500 text-center">No results found</li>
+              ) : (
+                renderOptions()
+              )}
+            </ul>
           </div>
-          
-          <ul tabIndex={-1} role="listbox" aria-labelledby={id} aria-activedescendant={value ? `${id}-option-${value}` : undefined}>
-            {filteredOptions.length === 0 ? (
-              <li className="px-3 py-2 text-gray-500 text-center">No results found</li>
-            ) : (
-              renderOptions()
-            )}
-          </ul>
         </div>
       )}
       

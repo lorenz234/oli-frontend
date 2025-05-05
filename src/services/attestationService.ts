@@ -1,7 +1,7 @@
 // services/attestationService.ts
 import { gql } from '@apollo/client';
 import client from '@/lib/apollo-client';
-import { ethers, getAddress } from 'ethers';
+import { getAddress } from 'ethers';
 
 // Define the GraphQL query
 export const GET_ATTESTATIONS = gql`

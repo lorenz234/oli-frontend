@@ -107,7 +107,7 @@ const HomePage: FC = () => {
             </div>
             
             <p className="mt-6 max-w-md mx-auto text-x text-gray-500 sm:text-2xl md:text-3xl md:max-w-3xl font-light leading-relaxed">
-              A Standardized Framework and Data Model for Address Labeling
+              A Decentralized and Open Framework for Address Labeling
             </p>
             
             <div className="mt-8 mx-auto sm:flex sm:justify-center">

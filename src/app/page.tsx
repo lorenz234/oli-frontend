@@ -399,7 +399,7 @@ const HomePage: FC = () => {
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div className="text-center mb-12">
       <h2 className="text-3xl font-extrabold text-gray-900">
-        Products Built Using OLI
+        Products Using OLI
       </h2>
       <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
         Discover projects leveraging the Label Pool
@@ -426,6 +426,7 @@ const HomePage: FC = () => {
             const projectImages: { [key: string]: string } = {
               'https://labels.growthepie.xyz/': '/project-images/growthepie-labels.png',
               'https://www.growthepie.xyz/applications': '/project-images/growthepie-applications.png',
+              'https://agx.app/': '/project-images/agx.png',
             };
                         
             // Check if we have an image for this project

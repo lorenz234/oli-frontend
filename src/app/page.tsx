@@ -427,6 +427,7 @@ const HomePage: FC = () => {
               'https://labels.growthepie.xyz/': '/project-images/growthepie-labels.png',
               'https://www.growthepie.xyz/applications': '/project-images/growthepie-applications.png',
               'https://agx.app/': '/project-images/agx.png',
+              'https://repo.sourcify.dev/': '/project-images/sourcify.png',
             };
                         
             // Check if we have an image for this project

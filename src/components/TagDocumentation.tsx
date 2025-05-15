@@ -51,7 +51,7 @@ const TagDocumentation: React.FC = () => {
         setTagDefinitions(tagData.tags);
         setCategories(categoryData.categories);
         setLoading(false);
-      } catch (err) {
+      } catch {
         setError('Failed to load documentation. Please try again later.');
         setLoading(false);
       }

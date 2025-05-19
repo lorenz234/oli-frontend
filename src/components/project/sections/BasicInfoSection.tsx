@@ -12,13 +12,14 @@ interface BasicInfoSectionProps {
   PROJECT_DESCRIPTIONS: Record<string, string>;
 }
 
-const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
+const BasicInfoSection: React.FC<BasicInfoSectionProps & { isClient: boolean }> = ({
   formData,
   errors,
   handleInputChange,
   handleArrayChange,
   removeArrayItem,
   PROJECT_DESCRIPTIONS,
+  isClient,
 }) => (
   <div>
     {/* Project Name */}
@@ -109,7 +110,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-400 bg-gray-50 py-2 pl-3"
                 />
               </InputWithCheck>
-              <ValidationChecker field="website" value={website} />
+              {isClient && <ValidationChecker field="website" value={website} />}
             </div>
             {index > 0 && website === '' && formData.websites.length > 1 && (
               <button

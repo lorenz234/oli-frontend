@@ -31,12 +31,13 @@ const Tooltip = ({ content }: { content: string }) => (
   </div>
 );
 
-const DevelopmentSection: React.FC<DevelopmentSectionProps> = ({
+const DevelopmentSection: React.FC<DevelopmentSectionProps & { isClient: boolean }> = ({
   formData,
   errors,
   handleInputChange,
   handleArrayChange,
   removeArrayItem,
+  isClient,
 }) => (
   <div>
     <h3 className="text-lg font-medium text-gray-900 mb-4">Development Resources</h3>
@@ -67,7 +68,7 @@ const DevelopmentSection: React.FC<DevelopmentSectionProps> = ({
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder-gray-400 bg-gray-50 py-2 pl-3"
                 />
               </InputWithCheck>
-              <ValidationChecker field="github" value={github} />
+              {isClient && <ValidationChecker field="github" value={github} />}
             </div>
             {index > 0 && github === '' && formData.github.length > 1 && (
               <button

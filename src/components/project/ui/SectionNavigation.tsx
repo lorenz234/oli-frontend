@@ -16,7 +16,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
   activeSection,
   setActiveSection,
 }) => (
-  <div className="w-full flex justify-center mb-8">
+  <div className="flex justify-center mt-10 mb-2">
     <div className="inline-flex flex-wrap items-center gap-2 px-4 py-2 bg-white/90 rounded-2xl shadow border border-gray-100">
       {sections.map(section => (
         <button
@@ -33,10 +33,6 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
           aria-current={activeSection === section.id ? 'page' : undefined}
         >
           <span className="z-10 relative">{section.label}</span>
-          {/* Animated underline for active tab */}
-          {activeSection === section.id && (
-            <span className="absolute left-1/2 -translate-x-1/2 bottom-1 w-2/3 h-1 rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 animate-pulse" />
-          )}
         </button>
       ))}
     </div>

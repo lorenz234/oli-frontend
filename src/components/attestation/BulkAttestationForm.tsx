@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
 import Notification from './Notification';
 import BulkConfirmationModal from './BulkConfirmationModal';
-import { Trash2, Plus, Upload, Download, Save } from 'lucide-react';
+import BulkFieldSelector from './BulkFieldSelector';
+import { Trash2, Plus, Upload, Download, Save, X } from 'lucide-react';
 
 // Import shared constants and utilities
 import { CHAIN_OPTIONS } from '../../constants/chains';
@@ -12,9 +13,11 @@ import { VALID_CATEGORY_IDS, CATEGORY_MAP } from '../../constants/categories';
 import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
 import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
 import { NotificationType, ConfirmationData } from '../../types/attestation';
+import { formFields } from '../../constants/formFields';
 
 // Types definitions
 interface RowData {
+  [key: string]: string;
   chain_id: string;
   address: string;
   contract_name: string;
@@ -30,11 +33,12 @@ interface AttestationResult {
 }
 
 interface ColumnDefinition {
-  id: keyof RowData;
+  id: string;
   name: string;
   required: boolean;
   validator?: (value: string) => string | null;
   needsCustomValidation?: boolean;
+  type?: string;
 }
 
 // Define initial empty row
@@ -57,8 +61,8 @@ const DUMMY_ROW: RowData = {
   is_contract: 'true',
 };
 
-// Column definition for our table
-const COLUMNS: ColumnDefinition[] = [
+// Base columns definition
+const BASE_COLUMNS: ColumnDefinition[] = [
   { 
     id: 'chain_id', 
     name: 'Chain', 
@@ -101,6 +105,7 @@ const BulkAttestationForm: React.FC = () => {
   const [confirmationData, setConfirmationData] = useState<ConfirmationData[] | null>(null);
   const [validProjects, setValidProjects] = useState<string[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [activeColumns, setActiveColumns] = useState<ColumnDefinition[]>(BASE_COLUMNS);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Fetch valid projects on component mount
@@ -144,7 +149,7 @@ const BulkAttestationForm: React.FC = () => {
   };
 
   // Update a specific field in a row
-  const updateRow = (index: number, field: keyof RowData, value: string) => {
+  const updateRow = (index: number, field: string, value: string) => {
     const newRows = [...rows];
     newRows[index] = { ...newRows[index], [field]: value };
     setRows(newRows);
@@ -153,6 +158,32 @@ const BulkAttestationForm: React.FC = () => {
     if (errors[`${index}-${field}`]) {
       const newErrors = { ...errors };
       delete newErrors[`${index}-${field}`];
+      setErrors(newErrors);
+    }
+
+    // Run validation for the updated field
+    const column = activeColumns.find(col => col.id === field);
+    if (column) {
+      const newErrors = { ...errors };
+      
+      // Check if required field is empty
+      if (column.required && !value) {
+        newErrors[`${index}-${field}`] = `${column.name} is required`;
+      }
+      // Run validator if value exists
+      else if (value && column.validator) {
+        const validationError = column.validator(value);
+        if (validationError) {
+          newErrors[`${index}-${field}`] = validationError;
+        }
+      }
+      // Special validation for owner_project
+      else if (field === 'owner_project' && value && validProjects.length > 0) {
+        if (!validProjects.includes(value)) {
+          newErrors[`${index}-${field}`] = `Unknown project: "${value}"`;
+        }
+      }
+
       setErrors(newErrors);
     }
   };
@@ -164,31 +195,39 @@ const BulkAttestationForm: React.FC = () => {
 
     rows.forEach((row, index) => {
       // Skip empty rows
-      if (!row.address && rows.length > 1) {
+      if (Object.values(row).every(value => !value) && rows.length > 1) {
         return;
       }
-      
-      // Check required fields and run custom validators
-      COLUMNS.forEach(column => {
-        // Check if required field is empty
-        if (column.required && !row[column.id]) {
+
+      // Check each column
+      activeColumns.forEach(column => {
+        const value = row[column.id];
+
+        // Check required fields
+        if (column.required && !value) {
           newErrors[`${index}-${column.id}`] = `${column.name} is required`;
           isValid = false;
+          return;
         }
-        
-        // Run custom validator if field has a value
-        if (column.validator && row[column.id]) {
-          const validationError = column.validator(row[column.id]);
+
+        // Skip validation if field is empty and not required
+        if (!value && !column.required) {
+          return;
+        }
+
+        // Run field-specific validation
+        if (column.validator) {
+          const validationError = column.validator(value);
           if (validationError) {
             newErrors[`${index}-${column.id}`] = validationError;
             isValid = false;
           }
         }
-        
+
         // Special validation for owner_project
-        if (column.id === 'owner_project' && row[column.id] && validProjects.length > 0) {
-          if (!validProjects.includes(row[column.id])) {
-            newErrors[`${index}-${column.id}`] = `Unknown project: "${row[column.id]}"`;
+        if (column.id === 'owner_project' && value && validProjects.length > 0) {
+          if (!validProjects.includes(value)) {
+            newErrors[`${index}-${column.id}`] = `Unknown project: "${value}"`;
             isValid = false;
           }
         }
@@ -367,21 +406,34 @@ const BulkAttestationForm: React.FC = () => {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event: ProgressEvent<FileReader>) => {
+    reader.onload = (event) => {
+      const csvText = event.target?.result as string;
+      const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+      
+      if (lines.length < 2) {
+        showNotification('CSV file must contain at least a header row and one data row', 'error');
+        return;
+      }
+
+      // Parse headers
+      const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
+      
+      // Validate required fields are present
+      const requiredFields = activeColumns.filter(col => col.required).map(col => col.id.toLowerCase());
+      const missingRequired = requiredFields.filter(field => 
+        !headers.some(header => header === field || header === activeColumns.find(col => col.id === field)?.name.toLowerCase())
+      );
+
+      if (missingRequired.length > 0) {
+        showNotification(`Missing required fields: ${missingRequired.join(', ')}`, 'error');
+        return;
+      }
+
       try {
-        const csv = event.target?.result as string;
-        if (!csv) {
-          showNotification("Failed to read CSV file", "error");
-          return;
-        }
-        
-        const lines = csv.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        
-        // Map CSV headers to our expected fields
-        const fieldMap: { [key: number]: keyof RowData } = {};
+        // Map CSV headers to our fields
+        const fieldMap: { [key: number]: string } = {};
         headers.forEach((header, index) => {
-          const field = COLUMNS.find(col => 
+          const field = activeColumns.find(col => 
             col.id.toLowerCase() === header || 
             col.name.toLowerCase() === header
           );
@@ -389,161 +441,95 @@ const BulkAttestationForm: React.FC = () => {
             fieldMap[index] = field.id;
           }
         });
-        
-        // Parse rows
-        const newRows: RowData[] = [];
-        const validationIssues: string[] = [];
-        const rowValidation: { [key: string]: { [key: string]: string } } = {}; // Track which rows have validation issues for highlighting
-        
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue;
+
+        // Parse data rows
+        const newRows: RowData[] = lines.slice(1).map(line => {
+          const values = line.split(',').map(value => value.trim());
+          const row: RowData = { ...EMPTY_ROW };
           
-          const values = lines[i].split(',').map(v => v.trim());
-          const row = { ...EMPTY_ROW };
-          const rowIndex = newRows.length; // Store the index for error tracking
-          rowValidation[rowIndex] = {};
-          
-          values.forEach((value, index) => {
-            if (fieldMap[index]) {
-              const field = fieldMap[index];
-              
-              // Validate chain_id against supported values
-              if (field === 'chain_id') {
-                // Only set valid chain IDs
-                const isValidChain = CHAIN_OPTIONS.some(option => option.value === value);
-                if (isValidChain) {
-                  row[field] = value;
-                } else {
-                  // Keep the invalid value but mark it for validation
-                  row[field] = value; // Keep the invalid value to show the user
-                  rowValidation[rowIndex][field] = `Invalid chain: "${value}" - please select a valid chain`;
-                  validationIssues.push(`Row ${i}: Invalid chain_id "${value}" - must be a supported chain`);
-                }
-              } 
-              // Validate owner_project
-              else if (field === 'owner_project' && value && validProjects.length > 0) {
-                row[field] = value;
-                if (!validProjects.includes(value)) {
-                  rowValidation[rowIndex][field] = `Unknown project: "${value}"`;
-                  validationIssues.push(`Row ${i}: Invalid project "${value}" - must be a known project`);
-                }
-              }
-              // Validate is_contract value
-              else if (field === 'is_contract') {
-                if (value === 'TRUE' || value === 'FALSE' || value === 'true' || value === 'false' || value === '') {
-                  row[field] = value.toLowerCase();
-                } else {
-                  row[field] = '';
-                  rowValidation[rowIndex][field] = `Invalid value: "${value}" - must be true or false`;
-                  validationIssues.push(`Row ${i}: Invalid is_contract value "${value}" removed`);
-                }
-              }
-              // Validate usage_category
-              else if (field === 'usage_category' && value) {
-                if (VALID_CATEGORY_IDS.includes(value)) {
-                  row[field] = value;
-                } else {
-                  // Keep the value but mark it for validation
-                  row[field] = value;
-                  rowValidation[rowIndex][field] = `Invalid category: "${value}"`;
-                  validationIssues.push(`Row ${i}: Invalid usage_category "${value}" - must be a valid category ID`);
-                }
-              }
-              else {
-                row[field] = value;
-              }
-            }
+          Object.entries(fieldMap).forEach(([index, fieldId]) => {
+            row[fieldId] = values[parseInt(index)] || '';
           });
-          
-          // Skip the dummy row if it matches
-          if (!isDummyRow(row)) {
-            newRows.push(row);
-          } else {
-            console.log("Skipping dummy row from import");
-          }
-        }
-        
-        if (newRows.length > 0) {
-          setRows(newRows);
-          
-          // Set validation errors to highlight invalid fields
-          const newErrors: { [key: string]: string } = {};
-          Object.entries(rowValidation).forEach(([rowIndex, fields]) => {
-            Object.entries(fields).forEach(([field, errorMessage]) => {
-              newErrors[`${rowIndex}-${field}`] = errorMessage;
-            });
-          });
-          setErrors(newErrors);
-          
-          if (validationIssues.length > 0) {
-            // Show notification with validation issues
-            showNotification(
-              `Imported ${newRows.length} rows with ${validationIssues.length} validation issues. Please fix highlighted fields.`, 
-              "warning"
-            );
-            console.warn("CSV Import validation issues:", validationIssues);
-          } else {
-            showNotification(`Imported ${newRows.length} rows from CSV`, "success");
-          }
-        } else {
-          showNotification("No valid data rows found in the CSV", "error");
-        }
+
+          return row;
+        });
+
+        setRows(newRows);
+        showNotification('CSV file imported successfully', 'success');
       } catch (error) {
         console.error('Error parsing CSV:', error);
-        showNotification("Failed to parse CSV file", "error");
-      }
-      
-      // Reset the file input so the same file can be imported again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        showNotification('Error parsing CSV file', 'error');
       }
     };
+
     reader.readAsText(file);
   };
 
   // Handle CSV export
   const handleExportCSV = () => {
-    // Filter out dummy rows before export
-    const rowsToExport = rows.filter(row => !isDummyRow(row));
-
-    // Create CSV header
-    const csvContent = [
-      COLUMNS.map(col => col.name).join(','),
-      ...rowsToExport.map(row => 
-        COLUMNS.map(col => row[col.id] || '').join(',')
-      )
-    ].join('\n');
+    // Filter out empty rows
+    const rowsToExport = rows.filter(row => Object.values(row).some(value => value));
     
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'oli_bulk_attest_export.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (rowsToExport.length === 0) {
+      showNotification('No data to export', 'warning');
+      return;
+    }
+
+    try {
+      // Create CSV header and data rows
+      const csvContent = [
+        activeColumns.map(col => col.name).join(','),
+        ...rowsToExport.map(row => 
+          activeColumns.map(col => {
+            const value = row[col.id] || '';
+            // Escape commas and quotes in values
+            return value.includes(',') || value.includes('"') 
+              ? `"${value.replace(/"/g, '""')}"` 
+              : value;
+          }).join(',')
+        )
+      ].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'bulk_attestation.csv';
+      link.click();
+      
+      showNotification('CSV file exported successfully', 'success');
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      showNotification('Error exporting CSV file', 'error');
+    }
   };
 
   // Handle template download
   const handleDownloadTemplate = () => {
-    // Create template CSV with just headers and dummy row
-    const csvContent = [
-      COLUMNS.map(col => col.name).join(','),
-      COLUMNS.map(col => DUMMY_ROW[col.id] || '').join(',')
-    ].join('\n');
-    
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'oli_bulk_attest_template.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Create template CSV with headers and dummy row
+      const csvContent = [
+        activeColumns.map(col => col.name).join(','),
+        activeColumns.map(col => {
+          const value = DUMMY_ROW[col.id] || '';
+          return value.includes(',') || value.includes('"') 
+            ? `"${value.replace(/"/g, '""')}"` 
+            : value;
+        }).join(',')
+      ].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'bulk_attestation_template.csv';
+      link.click();
+      
+      showNotification('Template downloaded successfully', 'success');
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      showNotification('Error downloading template', 'error');
+    }
   };
 
   // Trigger file input click
@@ -551,6 +537,233 @@ const BulkAttestationForm: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+  };
+
+  // Check if a column is removable
+  const isColumnRemovable = (columnId: string) => {
+    const nonRemovableFields = ['chain_id', 'address'];
+    return !nonRemovableFields.includes(columnId);
+  };
+
+  // Add a new field to the table
+  const handleAddField = (fieldId: string) => {
+    const field = formFields.find(f => f.id === fieldId);
+    if (!field) return;
+
+    // Add the field to columns
+    const newColumn: ColumnDefinition = {
+      id: field.id,
+      name: field.label,
+      required: field.required || false,
+      validator: field.validator,
+      type: field.type
+    };
+    setActiveColumns(prev => [...prev, newColumn]);
+
+    // Update all rows to include the new field
+    setRows(rows.map(row => ({
+      ...row,
+      [field.id]: '',
+    })));
+  };
+
+  // Remove a field from the table
+  const handleRemoveField = (fieldId: string) => {
+    if (!isColumnRemovable(fieldId)) return;
+
+    // Remove the column
+    setActiveColumns(prev => prev.filter(col => col.id !== fieldId));
+
+    // Remove the field from all rows
+    setRows(rows.map(row => {
+      const newRow = { ...row };
+      delete newRow[fieldId];
+      return newRow;
+    }));
+
+    // Clear any errors for this field
+    const newErrors = { ...errors };
+    Object.keys(newErrors).forEach(key => {
+      if (key.endsWith(`-${fieldId}`)) {
+        delete newErrors[key];
+      }
+    });
+    setErrors(newErrors);
+  };
+
+  // Render a table cell based on the column type
+  const renderTableCell = (column: ColumnDefinition, row: RowData, rowIndex: number) => {
+    const value = row[column.id] || '';
+    const error = errors[`${rowIndex}-${column.id}`];
+    const baseInputClasses = `block w-full px-3 py-2 text-sm border-0 placeholder-gray-400 focus:ring-0 ${
+      error ? 'text-red-900' : 'text-gray-900'
+    }`;
+
+    // Find the field definition
+    const field = formFields.find(f => f.id === column.id);
+    
+    // Special handling for boolean fields (radio or is_* fields)
+    if (field?.type === 'radio' || column.id.startsWith('is_')) {
+      return (
+        <td key={column.id} className="relative">
+          <select
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+          >
+            <option value="">Select...</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Special handling for date fields
+    if (field?.type === 'date') {
+      return (
+        <td key={column.id} className="relative">
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+          />
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Special handling for number fields
+    if (field?.type === 'number') {
+      return (
+        <td key={column.id} className="relative">
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+            step={column.id === 'erc20_decimals' ? '1' : 'any'}
+          />
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Special handling for multiselect fields
+    if (field?.type === 'multiselect' && field.options) {
+      return (
+        <td key={column.id} className="relative">
+          <select
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+          >
+            <option value="">Select...</option>
+            {field.options.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Special handling for chain_id
+    if (column.id === 'chain_id') {
+      return (
+        <td key={column.id} className="relative">
+          <select
+            value={CHAIN_OPTIONS.some(option => option.value === value) ? value : ''}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+          >
+            <option value="" disabled>Select a chain</option>
+            {CHAIN_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Special handling for owner_project
+    if (column.id === 'owner_project') {
+      return (
+        <td key={column.id} className="relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+              list="valid-projects"
+            />
+            {isLoadingProjects ? (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <div className="animate-spin h-4 w-4 border-2 border-indigo-500 rounded-full border-t-transparent" />
+              </div>
+            ) : (
+              value && validProjects.includes(value) && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">✓</div>
+              )
+            )}
+          </div>
+          <datalist id="valid-projects">
+            {validProjects.map(project => (
+              <option key={project} value={project} />
+            ))}
+          </datalist>
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Special handling for usage_category
+    if (column.id === 'usage_category') {
+      return (
+        <td key={column.id} className="relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+              list="valid-categories"
+            />
+            {value && VALID_CATEGORY_IDS.includes(value) && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">✓</div>
+            )}
+          </div>
+          <datalist id="valid-categories">
+            {VALID_CATEGORY_IDS.map(categoryId => (
+              <option key={categoryId} value={categoryId} />
+            ))}
+          </datalist>
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </td>
+      );
+    }
+
+    // Default input field for other columns
+    return (
+      <td key={column.id} className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+          className={baseInputClasses}
+          placeholder={`Enter ${column.name.toLowerCase()}`}
+        />
+        {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+      </td>
+    );
   };
 
   return (
@@ -563,247 +776,151 @@ const BulkAttestationForm: React.FC = () => {
         />
       )}
       
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Bulk Attestation</h2>
-          <div className="flex space-x-2">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Bulk Attestation</h2>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Template
+              </button>
+              <button
+                type="button"
+                onClick={triggerFileInput}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+              >
+                <Upload className="h-4 w-4 mr-1.5" />
+                Import CSV
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImportCSV}
+                accept=".csv"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Export CSV
+              </button>
+            </div>
+          </div>
+          
+          <div className="mb-6">
+            <p className="text-sm text-gray-600">
+              Enter multiple addresses and their associated tags for bulk attestation. All attestations will be submitted in a single transaction, saving gas and time.
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Note: Using the multiAttest feature requires only one signature for all attestations, making the process more efficient. Maximum of 50 attestations allowed per batch.
+            </p>
+          </div>
+          
+          <div className="flex space-x-2 mb-4">
             <button
               type="button"
-              onClick={handleDownloadTemplate}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onClick={addRow}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
             >
-              <Download className="h-4 w-4 mr-1" />
-              Template
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Row
             </button>
-            <button
-              type="button"
-              onClick={triggerFileInput}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <Upload className="h-4 w-4 mr-1" />
-              Import CSV
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImportCSV}
-              accept=".csv"
-              className="hidden"
+            <BulkFieldSelector
+              currentFields={activeColumns.map(col => col.id)}
+              onAddField={handleAddField}
+              onRemoveField={handleRemoveField}
             />
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  {activeColumns.map((column) => (
+                    <th
+                      key={column.id}
+                      className="bg-gray-50 px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1">
+                          <span>{column.name}</span>
+                          {column.required && (
+                            <span className="text-red-500" title="Required field">*</span>
+                          )}
+                        </div>
+                        {isColumnRemovable(column.id) && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveField(column.id)}
+                            className="invisible group-hover:visible ml-2 text-gray-400 hover:text-red-500 focus:outline-none"
+                            title={`Remove ${column.name} field`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="w-10 bg-gray-50 px-3 py-3.5" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {rows.map((row, rowIndex) => (
+                  <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
+                    {activeColumns.map((column) => renderTableCell(column, row, rowIndex))}
+                    <td className="w-10 p-0">
+                      <button
+                        type="button"
+                        onClick={() => deleteRow(rowIndex)}
+                        className="p-3 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="p-6 bg-gray-50 border-t border-gray-200">
+          <div className="flex justify-end">
             <button
               type="button"
-              onClick={handleExportCSV}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onClick={handleSubmissionRequest}
+              disabled={isSubmitting || rows.length === 0}
+              className="flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
             >
-              <Download className="h-4 w-4 mr-1" />
-              Export CSV
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Create Bulk Attestations
+                </>
+              )}
             </button>
           </div>
         </div>
-        
-        <div className="mb-4">
-          <p className="text-sm text-gray-500">
-            Enter multiple addresses and their associated tags for bulk attestation. All attestations will be submitted in a single transaction, saving gas and time.
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Note: Using the multiAttest feature requires only one signature for all attestations, making the process more efficient. Maximum of 50 attestations allowed per batch.
-          </p>
-        </div>
-        
-        <div className="overflow-x-auto border border-gray-200 rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {COLUMNS.map(column => (
-                  <th
-                    key={column.id}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {column.name} {column.required && <span className="text-red-500">*</span>}
-                  </th>
-                ))}
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200 text-gray-700">
-              {rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  {/* Chain ID */}
-                  <td className="px-3 py-2">
-                    <select
-                      value={CHAIN_OPTIONS.some(option => option.value === row.chain_id) ? row.chain_id : ''}
-                      onChange={(e) => updateRow(rowIndex, 'chain_id', e.target.value)}
-                      className={`block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                        errors[`${rowIndex}-chain_id`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="" disabled>Select a chain</option>
-                      {CHAIN_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                      {/* Show invalid option if present */}
-                      {!CHAIN_OPTIONS.some(option => option.value === row.chain_id) && row.chain_id && (
-                        <option value={row.chain_id} disabled className="text-red-500">
-                          ⚠️ Invalid: {row.chain_id}
-                        </option>
-                      )}
-                    </select>
-                    {errors[`${rowIndex}-chain_id`] && (
-                      <p className="mt-1 text-xs text-red-600">{errors[`${rowIndex}-chain_id`]}</p>
-                    )}
-                  </td>
-                  
-                  {/* Address */}
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={row.address}
-                      onChange={(e) => updateRow(rowIndex, 'address', e.target.value)}
-                      placeholder="0x..."
-                      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                        errors[`${rowIndex}-address`] ? 'border-red-300' : ''
-                      }`}
-                    />
-                    {errors[`${rowIndex}-address`] && (
-                      <p className="mt-1 text-xs text-red-600">{errors[`${rowIndex}-address`]}</p>
-                    )}
-                  </td>
-                  
-                  {/* Contract Name */}
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={row.contract_name}
-                      onChange={(e) => updateRow(rowIndex, 'contract_name', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
-                  </td>
-                  
-                  {/* Owner Project */}
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={row.owner_project}
-                      onChange={(e) => updateRow(rowIndex, 'owner_project', e.target.value)}
-                      className={`block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                        errors[`${rowIndex}-owner_project`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                      list="valid-projects"
-                    />
-                    {isLoadingProjects && (
-                      <p className="mt-1 text-xs text-gray-500">Loading projects...</p>
-                    )}
-                    {errors[`${rowIndex}-owner_project`] && (
-                      <p className="mt-1 text-xs text-red-600">{errors[`${rowIndex}-owner_project`]}</p>
-                    )}
-                    {!errors[`${rowIndex}-owner_project`] && row.owner_project && validProjects.includes(row.owner_project) && (
-                      <p className="mt-1 text-xs text-green-600">✓ Valid project</p>
-                    )}
-                    
-                    {/* Datalist for project suggestions */}
-                    <datalist id="valid-projects">
-                      {validProjects.map(project => (
-                        <option key={project} value={project} />
-                      ))}
-                    </datalist>
-                  </td>
-                  
-                  {/* Usage Category */}
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={row.usage_category}
-                      onChange={(e) => updateRow(rowIndex, 'usage_category', e.target.value)}
-                      className={`block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                        errors[`${rowIndex}-usage_category`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                      list="valid-categories"
-                    />
-                    {errors[`${rowIndex}-usage_category`] && (
-                      <p className="mt-1 text-xs text-red-600">{errors[`${rowIndex}-usage_category`]}</p>
-                    )}
-                    {!errors[`${rowIndex}-usage_category`] && row.usage_category && VALID_CATEGORY_IDS.includes(row.usage_category) && (
-                      <p className="mt-1 text-xs text-green-600">
-                        ✓ {CATEGORY_MAP[row.usage_category]?.name} ({CATEGORY_MAP[row.usage_category]?.mainCategory})
-                      </p>
-                    )}
-                    
-                    {/* Datalist for category suggestions */}
-                    <datalist id="valid-categories">
-                      {VALID_CATEGORY_IDS.map(categoryId => (
-                        <option key={categoryId} value={categoryId} />
-                      ))}
-                    </datalist>
-                  </td>
-                  
-                  {/* Is Contract */}
-                  <td className="px-3 py-2">
-                    <select
-                      value={row.is_contract}
-                      onChange={(e) => updateRow(rowIndex, 'is_contract', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    >
-                      <option value="">Select...</option>
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </td>
-                  
-                  {/* Actions */}
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={() => deleteRow(rowIndex)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        <div className="mt-4 flex justify-between">
-          <button
-            type="button"
-            onClick={addRow}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Row
-          </button>
-          
-          <button
-            type="button"
-            onClick={handleSubmissionRequest}
-            disabled={isSubmitting || rows.length === 0}
-            className="w-1/3 flex justify-center px-5 py-2.5 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-white rounded-xl hover:opacity-90 transition-opacity duration-200 text-sm font-semibold disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-1" />
-                Create Bulk Attestations
-              </>
-            )}
-          </button>
-        </div>
       </div>
       
-      {/* Use the BulkConfirmationModal component */}
       <BulkConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

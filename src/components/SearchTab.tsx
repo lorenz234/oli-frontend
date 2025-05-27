@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { fetchAttestationsByContract, Attestation } from '@/services/attestationService';
 import LoadingAnimation from '@/components/LoadingAnimation';
+import { CHAINS } from '@/constants/chains';
 
 // Define interfaces for the field structure in attestations
 interface AttestationField {
@@ -120,6 +121,7 @@ interface ParsedAttestation {
   timeCreated: number;
   txid: string;
   isOffchain: boolean;
+  revoked: boolean;
   tags: Tag[];
   chainId?: string;
 }
@@ -127,6 +129,12 @@ interface ParsedAttestation {
 interface GroupedTags {
   [category: string]: Tag[];
 }
+
+// Helper function to get chain name from chain ID
+const getChainName = (chainId: string): string => {
+  const chain = CHAINS.find(chain => chain.caip2 === chainId);
+  return chain ? chain.name : 'Unknown Chain';
+};
 
 const SearchTab = () => {
   const [contractAddress, setContractAddress] = useState('');
@@ -173,6 +181,7 @@ const SearchTab = () => {
           timeCreated: Number(attestation.timeCreated), // Convert to number
           txid: attestation.txid,
           isOffchain: attestation.isOffchain,
+          revoked: attestation.revoked,
           tags: parseTagsFromAttestation(attestation),
           chainId: extractChainId(attestation)
         };
@@ -244,7 +253,7 @@ const SearchTab = () => {
             </h2>
             <div className="flex justify-between text-sm text-gray-500 mb-4">
               <p>
-                {attestations.length} attestation{attestations.length !== 1 ? 's' : ''} found
+                Total attestations found across all chains: {attestations.length}
               </p>
               <p>
                 {totalTags} extracted tag{totalTags !== 1 ? 's' : ''} 
@@ -271,12 +280,13 @@ const SearchTab = () => {
                 .map(([chainId, chainAttestations]) => (
                   <div key={chainId} className="border-t pt-4 first:border-t-0 first:pt-0">
                     <h3 className="text-lg font-medium mb-3 flex items-center">
+                    <span className="text-gray-500 text-sm font-normal">
+                        {chainAttestations.length} attestation{chainAttestations.length !== 1 ? 's' : ''} were found for this contract on 
+                      </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-50 text-blue-700 mr-2">
-                        chain_id: {chainId}
+                         {getChainName(chainId)} ({chainId})
                       </span>
-                      <span className="text-gray-500 text-sm font-normal">
-                        {chainAttestations.length} attestation{chainAttestations.length !== 1 ? 's' : ''}
-                      </span>
+                      
                     </h3>
                     
                     <div className="space-y-4">
@@ -299,6 +309,11 @@ const SearchTab = () => {
                                 {attestation.isOffchain && (
                                   <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-600 rounded-full">
                                     Offchain
+                                  </span>
+                                )}
+                                {attestation.revoked && (
+                                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-50 text-red-600 rounded-full">
+                                    Revoked
                                   </span>
                                 )}
                               </div>

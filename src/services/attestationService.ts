@@ -1,6 +1,7 @@
 // services/attestationService.ts
 import { gql } from '@apollo/client';
 import client from '@/lib/apollo-client';
+import { getAddress } from 'ethers';
 
 // Define the GraphQL query
 export const GET_ATTESTATIONS = gql`
@@ -65,7 +66,8 @@ export async function fetchAttestationsByContract(contractAddress: string, cache
         },
         // Using the contract address as recipient
         recipient: {
-          equals: contractAddress
+          // checksum address
+          equals: getAddress(contractAddress)
         }
       },
       take: limit,

@@ -99,7 +99,6 @@ const TagDocumentation: React.FC = () => {
   const [expandedCategories, setExpandedCategories] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'categories'>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,8 +119,6 @@ const TagDocumentation: React.FC = () => {
         // Parse category groups from YAML comments
         const lines = categoryText.split('\n');
         const groups: CategoryGroup[] = [];
-        let currentGroupName: string | null = null;
-        let currentCategories: Category[] = [];
 
         // First pass: find all group headers and their line numbers
         const groupHeaders = lines.reduce((acc, line, index) => {
@@ -411,54 +408,37 @@ const TagDocumentation: React.FC = () => {
 
       {/* Content Area */}
       <div className="space-y-6">
-        {activeTab === 'all' ? (
-          <div className="grid gap-6">
-            {filteredTags.map((tag) => (
-              <div 
-                key={tag.tag_id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:border-indigo-300 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{tag.name}</h3>
-                    <code className="mt-1 inline-block text-sm bg-gray-100 px-2 py-1 rounded text-gray-600">
-                      {tag.tag_id}
-                    </code>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
-                      {tag.type}
-                    </span>
-                  </div>
+        <div className="grid gap-6">
+          {filteredTags.map((tag) => (
+            <div 
+              key={tag.tag_id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:border-indigo-300 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{tag.name}</h3>
+                  <code className="mt-1 inline-block text-sm bg-gray-100 px-2 py-1 rounded text-gray-600">
+                    {tag.tag_id}
+                  </code>
                 </div>
-                {renderTagContent(tag)}
-                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-sm text-gray-500">
-                  <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Created by: {tag.creator}
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
+                    {tag.type}
                   </span>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Category Groups</h3>
-              <button
-                onClick={() => setExpandedCategories(!expandedCategories)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                {expandedCategories ? 'Collapse All' : 'Expand All'}
-              </button>
+              {renderTagContent(tag)}
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-sm text-gray-500">
+                <span className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Created by: {tag.creator}
+                </span>
+              </div>
             </div>
-            <div className="space-y-6">
-              {categoryGroups.map(renderCategoryGroup)}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );

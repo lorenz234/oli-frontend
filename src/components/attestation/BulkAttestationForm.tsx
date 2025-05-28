@@ -9,7 +9,7 @@ import { Trash2, Plus, Upload, Download, Save, X } from 'lucide-react';
 // Import shared constants and utilities
 import { CHAIN_OPTIONS } from '../../constants/chains';
 import { SCHEMA_UID } from '../../constants/eas';
-import { VALID_CATEGORY_IDS, CATEGORY_MAP } from '../../constants/categories';
+import { VALID_CATEGORY_IDS } from '../../constants/categories';
 import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
 import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
 import { NotificationType, ConfirmationData } from '../../types/attestation';

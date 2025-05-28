@@ -19,7 +19,6 @@ const ValidationChecker: React.FC<ValidationCheckerProps> = ({ field, value }) =
   const [warnings, setWarnings] = useState<string[]>([]);
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
     // Fetch projects data when component mounts
@@ -63,7 +62,6 @@ const ValidationChecker: React.FC<ValidationCheckerProps> = ({ field, value }) =
   useEffect(() => {
     if (!value) {
       setWarnings([]);
-      setHasChecked(false);
       return;
     }
 
@@ -150,7 +148,6 @@ const ValidationChecker: React.FC<ValidationCheckerProps> = ({ field, value }) =
     }
 
     setWarnings(newWarnings);
-    setHasChecked(true);
   }, [field, value, projects]);
 
   // Check if two values are similar based on field type

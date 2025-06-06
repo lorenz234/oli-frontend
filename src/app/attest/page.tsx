@@ -40,55 +40,26 @@ const mapChainToCAIP2 = (chainInput: string): string | undefined => {
   
   // Check if it's already in CAIP-2 format (eip155:chainId)
   if (input.startsWith('eip155:')) {
-    return chainInput;
+    // Verify it matches a known chain
+    const matchingChain = CHAINS.find(chain => chain.caip2.toLowerCase() === input);
+    return matchingChain?.caip2;
   }
   
   // Check if it's a numeric chain ID
   const numericChainId = parseInt(input);
   if (!isNaN(numericChainId)) {
-    return `eip155:${numericChainId}`;
+    const matchingChain = CHAINS.find(chain => chain.caip2.toLowerCase() === `eip155:${numericChainId}`);
+    return matchingChain?.caip2;
   }
   
-  // Map common chain names/aliases to CAIP-2 format
-  const chainMappings: { [key: string]: string } = {
-    // By chain name (lowercase)
-    'ethereum': 'eip155:1',
-    'eth': 'eip155:1',
-    'mainnet': 'eip155:1',
-    'base': 'eip155:8453',
-    'arbitrum': 'eip155:42161',
-    'arbitrum one': 'eip155:42161',
-    'optimism': 'eip155:10',
-    'op mainnet': 'eip155:10',
-    'polygon': 'eip155:137',
-    'linea': 'eip155:59144',
-    'scroll': 'eip155:534352',
-    'zksync': 'eip155:324',
-    'zksync era': 'eip155:324',
-    'mantle': 'eip155:5000',
-    'mode': 'eip155:34443',
-    'mode network': 'eip155:34443',
-    'taiko': 'eip155:167000',
-    'taiko alethia': 'eip155:167000',
-    'swell': 'eip155:1923',
-    'swellchain': 'eip155:1923',
-    'zora': 'eip155:7777777'
-  };
-  
-  // Check direct mapping first
-  if (chainMappings[input]) {
-    return chainMappings[input];
-  }
-  
-  // Check by chain ID from CHAINS constant
-  const foundChain = CHAINS.find(chain => 
+  // Search through all chain properties
+  const matchingChain = CHAINS.find(chain => 
     chain.id.toLowerCase() === input ||
     chain.name.toLowerCase() === input ||
-    chain.shortName.toLowerCase() === input ||
-    chain.caip2.toLowerCase() === chainInput.toLowerCase()
+    chain.shortName.toLowerCase() === input
   );
   
-  return foundChain?.caip2;
+  return matchingChain?.caip2;
 };
 
 // Component that uses useSearchParams

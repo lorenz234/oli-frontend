@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 // Removed unused Search import
 import { Combobox } from '@headlessui/react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 // Define a type for the raw project item from the API
 type RawProjectItem = [
@@ -92,6 +93,29 @@ const OwnerProjectSelect = ({
     return `https://api.growthepie.xyz/v1/apps/logos/${logoPath}`;
   };
 
+  // Project not found component
+  const ProjectNotFound = () => (
+    <div className="p-4 text-sm">
+      <p className="font-medium text-gray-700 mb-2">
+        Couldn&apos;t find your project?
+      </p>
+      <ul className="list-disc pl-5 text-gray-600 space-y-1 mb-3">
+        <li>Check if you&apos;ve spelled the project name correctly</li>
+        <li>Try searching by the project&apos;s GitHub name</li>
+        <li>Search with different keywords related to your project</li>
+      </ul>
+      <p className="text-gray-700 mb-2">
+        If you still can&apos;t find your project, you can add it to our directory:
+      </p>
+      <Link 
+        href="/project" 
+        className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium transition-colors"
+      >
+        Add New Project
+      </Link>
+    </div>
+  );
+
   return (
     <Combobox value={value} onChange={onChange}>
       <div className="relative">
@@ -109,7 +133,7 @@ const OwnerProjectSelect = ({
             ) : error ? (
               <div className="p-2 text-sm text-red-500">{error}</div>
             ) : projects.length === 0 ? (
-              <div className="p-2 text-sm text-gray-500">No projects found</div>
+              <ProjectNotFound />
             ) : (
               projects.map((project) => (
                 <Combobox.Option

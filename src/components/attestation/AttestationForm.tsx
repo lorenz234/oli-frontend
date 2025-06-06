@@ -1,7 +1,7 @@
 // components/attestation/AttestationForm.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ConfirmationModal from '../attestation/ConfirmationModal';
 import InputWithCheck from '../attestation/InputWithCheck';
 import FormLabel from '../attestation/FormLabel';
@@ -25,7 +25,12 @@ interface ErrorState {
   [key: string]: string;
 }
 
-const AttestationForm = () => {
+interface AttestationFormProps {
+  prefilledAddress?: string;
+  prefilledChainId?: string;
+}
+
+const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, prefilledChainId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<NotificationType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +38,17 @@ const AttestationForm = () => {
   const [formMode, setFormMode] = useState<FormMode>('simple');
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [errors, setErrors] = useState<ErrorState>({});
+
+  // Use prefilledAddress and prefilledChainId if provided
+  useEffect(() => {
+    if (prefilledAddress || prefilledChainId) {
+      setFormData(prev => ({
+        ...prev,
+        ...(prefilledAddress ? { address: prefilledAddress } : {}),
+        ...(prefilledChainId ? { chain_id: prefilledChainId } : {})
+      }));
+    }
+  }, [prefilledAddress, prefilledChainId]);
 
   // Filter fields based on current form mode
   const getVisibleFields = () => {
@@ -147,7 +163,10 @@ const AttestationForm = () => {
   };
 
   const handleChange = (fieldId: string, value: FieldValue) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
+    // If the value is null, undefined, or empty, store as empty string
+    const normalizedValue = value === null || value === undefined ? '' : value;
+    
+    setFormData(prev => ({ ...prev, [fieldId]: normalizedValue }));
     
     // Clear errors when user changes input
     if (errors[fieldId]) {
@@ -280,7 +299,7 @@ const AttestationForm = () => {
         />
 
         <InputWithCheck
-          value={formData[field.id] !== undefined && formData[field.id] !== ''}
+          value={formData[field.id] !== undefined && formData[field.id] !== '' && formData[field.id] !== null}
           isValid={!errors[field.id]}
           error={errors[field.id]}
         >
@@ -320,16 +339,23 @@ const AttestationForm = () => {
             />
           )}
 
-          {field.type === 'select' && (
-            <CustomDropdown
-              id={field.id}
-              options={field.options || []}
-              value={getStringValue(formData[field.id])}
-              onChange={(value) => handleChange(field.id, value)}
-              placeholder={field.placeholder || `Select ${field.label}`}
-              required={field.required}
-              error={errors[field.id]}
-            />
+          {field.type === 'select' && field.id === 'chain_id' && prefilledChainId ? (
+            <div className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm bg-gray-50 py-2 pl-3 text-gray-700 text-sm">
+              {field.options?.find(opt => opt.value === prefilledChainId)?.label || prefilledChainId}
+            </div>
+          ) : field.type === 'select' && (
+            <div className="dropdown-wrapper" style={{ position: 'relative', zIndex: 50 }}>
+              <CustomDropdown
+                id={field.id}
+                options={field.options || []}
+                value={getStringValue(formData[field.id])}
+                onChange={(value) => handleChange(field.id, value)}
+                placeholder={field.placeholder || `Select ${field.label}`}
+                required={field.required}
+                error={errors[field.id]}
+                isProjectDropdown={field.id === 'owner_project'}
+              />
+            </div>
           )}
 
           {field.type === 'multiselect' && (
@@ -364,18 +390,18 @@ const AttestationForm = () => {
 
           {field.type === 'radio' && (
             <div className="flex gap-4 mt-1">
-              {field.options?.map(option => (
-                <div className="flex items-center" key={option.value}>
+              {field.options?.map((option, index) => (
+                <div className="flex items-center" key={`${field.id}-${option.value}-${index}`}>
                   <input
                     type="radio"
-                    id={`${field.id}-${option.value}`}
+                    id={`${field.id}-${option.value}-${index}`}
                     name={field.id}
                     value={option.value}
                     checked={formData[field.id] === (option.value === 'true')}
                     onChange={(e) => handleChange(field.id, e.target.value === 'true')}
                     className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label htmlFor={`${field.id}-${option.value}`} className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor={`${field.id}-${option.value}-${index}`} className="ml-2 block text-sm text-gray-700">
                     {option.label}
                   </label>
                 </div>
@@ -411,7 +437,36 @@ const AttestationForm = () => {
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 pl-6 pb-6 pr-12">
+      <form onSubmit={handleSubmit} className="space-y-4 pl-6 pb-6 pr-12 overflow-visible">
+        <style jsx global>{`
+          /* Ensure dropdowns can overflow their containers */
+          .dropdown-wrapper {
+            position: relative;
+            z-index: 999 !important;
+          }
+          /* Add layers to properly stack dropdowns */
+          form > div {
+            position: relative;
+            overflow: visible !important;
+          }
+          /* Override any parent constraints */
+          .dropdown-container > div {
+            position: static !important;
+          }
+          /* Make sure dropdown menus aren't constrained */
+          .dropdown-container ul {
+            position: absolute;
+            z-index: 9999;
+            overflow: visible;
+          }
+          /* Override any overflow hidden */
+          #single-attestation, 
+          #single-attestation > div,
+          .max-w-7xl {
+            overflow: visible !important;
+          }
+        `}</style>
+        
         {getVisibleFields().map(renderField)}
 
         {/* Submit Button */}

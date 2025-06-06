@@ -53,7 +53,12 @@ export const initialFormState = {
   version: '',
   audit: '',
   contract_monitored: '',
-  source_code_verified: ''
+  source_code_verified: '',
+  paymaster_category: '',
+  is_bundler: undefined,
+  is_paymaster: undefined,
+  _comment: '',
+  _source: ''
 };
 
 // Define form fields with metadata
@@ -300,5 +305,54 @@ export const formFields: FormField[] = [
     visibility: 'advanced',
     placeholder: 'https://... Link to verified source code',
     validator: validateURL
+  },
+  {
+    id: 'paymaster_category',
+    label: 'Paymaster Category',
+    type: 'select',
+    tooltipKey: 'paymaster_category',
+    visibility: 'advanced',
+    options: [
+      { value: '', label: 'Select a category' },
+      { value: 'verifying', label: 'Verifying' },
+      { value: 'token', label: 'Token' },
+      { value: 'verifying_and_token', label: 'Verifying and Token' }
+    ]
+  },
+  {
+    id: 'is_bundler',
+    label: 'Is Bundler',
+    type: 'radio',
+    tooltipKey: 'is_bundler',
+    visibility: 'advanced',
+    options: [
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' }
+    ]
+  },
+  {
+    id: 'is_paymaster',
+    label: 'Is Paymaster',
+    type: 'radio',
+    tooltipKey: 'is_paymaster',
+    visibility: 'advanced',
+    options: [
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' }
+    ]
+  },
+  {
+    id: '_comment',
+    label: 'Comment',
+    type: 'text',
+    tooltipKey: '',
+    visibility: 'simple'
+  },
+  {
+    id: '_source',
+    label: 'Source',
+    type: 'text',
+    tooltipKey: '',
+    visibility: 'simple'
   }
 ];

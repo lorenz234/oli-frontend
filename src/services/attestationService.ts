@@ -1,6 +1,7 @@
 // services/attestationService.ts
 import { gql } from '@apollo/client';
 import client from '@/lib/apollo-client';
+import { getAddress } from 'ethers';
 
 // Define the GraphQL query
 export const GET_ATTESTATIONS = gql`
@@ -55,7 +56,7 @@ export interface AttestationsQueryResult {
 }
 
 // Function to fetch attestations based on contract address
-export async function fetchAttestationsByContract(contractAddress: string, limit: number = 50): Promise<Attestation[]> {
+export async function fetchAttestationsByContract(contractAddress: string, cacheBreaker?: { timestamp: number }, limit: number = 50): Promise<Attestation[]> {
   try {
     const variables: AttestationsQueryVariables = {
       where: {
@@ -65,7 +66,8 @@ export async function fetchAttestationsByContract(contractAddress: string, limit
         },
         // Using the contract address as recipient
         recipient: {
-          equals: contractAddress
+          // checksum address
+          equals: getAddress(contractAddress)
         }
       },
       take: limit,
@@ -74,7 +76,8 @@ export async function fetchAttestationsByContract(contractAddress: string, limit
 
     const { data } = await client.query<AttestationsQueryResult>({
       query: GET_ATTESTATIONS,
-      variables
+      variables,
+      fetchPolicy: cacheBreaker ? 'network-only' : 'cache-first'
     });
 
     return data.attestations;
@@ -90,8 +93,9 @@ export async function searchAttestations(options: {
   recipient?: string;
   dataContains?: string;
   limit?: number;
+  cacheBreaker?: { timestamp: number };
 }): Promise<Attestation[]> {
-  const { contractAddress, recipient, dataContains, limit = 50 } = options;
+  const { contractAddress, recipient, dataContains, limit = 50, cacheBreaker } = options;
   
   try {
     // Always include the required schema ID
@@ -121,7 +125,8 @@ export async function searchAttestations(options: {
 
     const { data } = await client.query<AttestationsQueryResult>({
       query: GET_ATTESTATIONS,
-      variables
+      variables,
+      fetchPolicy: cacheBreaker ? 'network-only' : 'cache-first'
     });
 
     return data.attestations;

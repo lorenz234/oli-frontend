@@ -212,28 +212,28 @@ export default function AttestPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold mb-3 text-gray-900">Bulk Attestation Scripts</h3>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Developer Tools & SDKs</h3>
             <p className="text-gray-600 mb-2">
-              Use our scripts for large-scale attestation needs.
+              Use our Python package and TypeScript script for large-scale attestation needs.
             </p>
             <ul className="mb-4 space-y-1 text-sm text-gray-600 flex-grow">
               <li className="flex items-start">
                 <svg className="w-4 h-4 mt-0.5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                50+ attestations support
+                Python pip package (oli-python)
               </li>
               <li className="flex items-start">
                 <svg className="w-4 h-4 mt-0.5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                Python & TypeScript options
+                TypeScript CSV bulk uploader
               </li>
               <li className="flex items-start">
                 <svg className="w-4 h-4 mt-0.5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                Pipeline integration ready
+                Easy pipeline integration
               </li>
             </ul>
             <span className="text-purple-600 font-medium inline-flex items-center mt-auto">
@@ -373,9 +373,10 @@ export default function AttestPage() {
       {/* Bulk Scripts Section */}
       <div id="bulk-scripts" ref={bulkScriptsRef} className="max-w-7xl mx-auto bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden border-t-4 border-purple-500 mt-16">
         <div className="p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Bulk Attestation Scripts</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Developer Tools & SDKs</h2>
           <p className="text-gray-600 mt-2">
-            Use our scripts for large-scale attestation needs.
+            For handling larger datasets or integrating with your data pipeline, we provide several script options.
+            Choose the one that best fits your use case and technical requirements.
           </p>
         </div>
         <BulkAttestationScripts />

@@ -1,5 +1,6 @@
 import DonutChart from '@/components/DonutChart';
 import LatestAttestations from '@/components/LatestAttestations';
+import LabelAnalyticsChart from '@/components/LabelAnalyticsChart';
 
 export default function AnalyticsPage() {
   return (
@@ -13,7 +14,7 @@ export default function AnalyticsPage() {
             </p>
           </div>
           
-          <DonutChart />
+          <LabelAnalyticsChart />
           <LatestAttestations />
         </div>
       </main>

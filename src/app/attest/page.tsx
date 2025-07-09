@@ -1,23 +1,143 @@
+// Attestation Page with URL Parameter Support
+// 
+// This page supports parametrized URLs for prefilling the attestation form:
+//
+// URL Parameters:
+// - address or contract: The blockchain address/contract to attest (e.g., 0x1234...)
+// - chain or chainId: The blockchain network (supports multiple formats):
+//   
+// Supported Chain Formats:
+// 1. Chain ID numbers: 1, 8453, 42161, 10, etc.
+// 2. CAIP-2 format: eip155:1, eip155:8453, etc.
+// 3. Chain names: ethereum, base, arbitrum, optimism, etc.
+// 4. Short names: eth, mainnet, etc.
+//
+// Example URLs:
+// https://openlabelsinitiative.org/attest?address=0x1234567890123456789012345678901234567890&chain=ethereum
+// https://openlabelsinitiative.org/attest?contract=0xA0b86a33E6441d1C9FC61e93eAef24fE7b88B24e&chainId=8453
+// https://openlabelsinitiative.org/attest?address=0x1234567890123456789012345678901234567890&chain=1
+// https://openlabelsinitiative.org/attest?address=0x1234567890123456789012345678901234567890&chain=base
+//
+// The form will automatically scroll to the single attestation section when parameters are provided.
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AttestationForm from '@/components/attestation/AttestationForm';
 import BulkAttestationForm from '@/components/attestation/BulkAttestationForm';
 import BulkAttestationScripts from '@/components/attestation/BulkAttestationScripts';
 import UnlabeledContractsList from '@/components/vibe-attest/UnlabeledContractsList';
 import VibeAttestSidebar from '@/components/vibe-attest/VibeAttestSidebar';
 import { UnlabeledContract } from '@/types/unlabeledContracts';
+import { CHAINS } from '@/constants/chains';
 
-export default function AttestPage() {
+// Chain mapping function to convert various formats to CAIP-2
+const mapChainToCAIP2 = (chainInput: string): string | undefined => {
+  if (!chainInput) return undefined;
+  
+  const input = chainInput.toLowerCase().trim();
+  
+  // Check if it's already in CAIP-2 format (eip155:chainId)
+  if (input.startsWith('eip155:')) {
+    // Verify it matches a known chain
+    const matchingChain = CHAINS.find(chain => chain.caip2.toLowerCase() === input);
+    return matchingChain?.caip2;
+  }
+  
+  // Check if it's a numeric chain ID
+  const numericChainId = parseInt(input);
+  if (!isNaN(numericChainId)) {
+    const matchingChain = CHAINS.find(chain => chain.caip2.toLowerCase() === `eip155:${numericChainId}`);
+    return matchingChain?.caip2;
+  }
+  
+  // Search through all chain properties
+  const matchingChain = CHAINS.find(chain => 
+    chain.id.toLowerCase() === input ||
+    chain.name.toLowerCase() === input ||
+    chain.shortName.toLowerCase() === input
+  );
+  
+  return matchingChain?.caip2;
+};
+
+// Component that uses useSearchParams
+function AttestPageContent() {
+  const searchParams = useSearchParams();
   const [selectedContract, setSelectedContract] = useState<UnlabeledContract | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const [vibeAttestVisible, setVibeAttestVisible] = useState<boolean>(false);
+  
+  // Extract URL parameters for prefilling the form
+  const [prefilledAddress, setPrefilledAddress] = useState<string | undefined>(undefined);
+  const [prefilledChainId, setPrefilledChainId] = useState<string | undefined>(undefined);
   
   // Create refs for each section
   const singleAttestationRef = useRef<HTMLDivElement>(null);
   const bulkAttestationRef = useRef<HTMLDivElement>(null);
   const bulkScriptsRef = useRef<HTMLDivElement>(null);
   const vibeAttestRef = useRef<HTMLDivElement>(null);
+
+  // Extract URL parameters on component mount
+  useEffect(() => {
+    // Get address parameter (can be 'address' or 'contract')
+    const addressParam = searchParams.get('address') || searchParams.get('contract');
+    // Get chain parameter (can be 'chain' or 'chainId')
+    const chainParam = searchParams.get('chain') || searchParams.get('chainId');
+    
+    if (addressParam) {
+      setPrefilledAddress(addressParam);
+    }
+    
+    if (chainParam) {
+      const mappedChain = mapChainToCAIP2(chainParam);
+      if (mappedChain) {
+        setPrefilledChainId(mappedChain);
+      } else {
+        console.warn(`Unable to map chain parameter "${chainParam}" to a supported chain`);
+      }
+    }
+    
+    // Handle hash-based routing and auto-scroll
+    const handleHashAndParams = () => {
+      const hash = window.location.hash.replace('#', '');
+      
+      // If parameters are provided or hash is single-attestation, scroll to single attestation
+      if (addressParam || chainParam || hash === 'single-attestation') {
+        setTimeout(() => {
+          scrollToElement(singleAttestationRef, 'single-attestation');
+        }, 100);
+      }
+      // Handle other hash sections
+      else if (hash === 'bulk-attestation') {
+        setTimeout(() => {
+          scrollToElement(bulkAttestationRef, 'bulk-attestation');
+        }, 100);
+      }
+      else if (hash === 'bulk-scripts') {
+        setTimeout(() => {
+          scrollToElement(bulkScriptsRef, 'bulk-scripts');
+        }, 100);
+      }
+      else if (hash === 'vibe-attest') {
+        setVibeAttestVisible(true);
+        setTimeout(() => {
+          scrollToElement(vibeAttestRef, 'vibe-attest');
+        }, 100);
+      }
+    };
+    
+    handleHashAndParams();
+    
+    // Listen for hash changes
+    const handleHashChange = () => handleHashAndParams();
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [searchParams]);
 
   const handleSelectContract = (contract: UnlabeledContract) => {
     setSelectedContract(contract);
@@ -355,7 +475,10 @@ export default function AttestPage() {
           </p>
         </div>
         <div className="pb-1">
-        <AttestationForm />
+        <AttestationForm 
+          prefilledAddress={prefilledAddress}
+          prefilledChainId={prefilledChainId}
+        />
         </div>
       </div>
       
@@ -432,5 +555,26 @@ export default function AttestPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Main export with Suspense wrapper
+export default function AttestPage() {
+  return (
+    <Suspense fallback={
+      <main className="max-w-7xl mx-auto p-8 space-y-16">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-2/3 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gray-200 h-64 rounded-2xl"></div>
+            ))}
+          </div>
+        </div>
+      </main>
+    }>
+      <AttestPageContent />
+    </Suspense>
   );
 }

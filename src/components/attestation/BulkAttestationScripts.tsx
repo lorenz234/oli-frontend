@@ -4,6 +4,11 @@ import Link from 'next/link';
 const BulkAttestationScripts = () => {
   return (
     <div className="py-6 px-8">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Developer Tools & SDKs</h2>
+      <p className="text-gray-700 mb-6">
+        For handling larger datasets or integrating with your data pipeline, we provide several script options.
+        Choose the one that best fits your use case and technical requirements.
+      </p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Python Pip Package Card */}

@@ -59,7 +59,7 @@ const LeaderboardTable: React.FC = () => {
                 }
               }
             ],
-            take: 10
+            take: 50
           }
         });
 

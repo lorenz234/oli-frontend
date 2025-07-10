@@ -131,7 +131,7 @@ const LatestAttestations: React.FC = () => {
   if (error) return <div className="text-red-500 text-center py-4">Error: {error}</div>;
 
   return (
-    <div className="mt-12 max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
+    <div className="mt-12 p-8 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)]">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Latest Attestations</h2>
       
       <div className="space-y-4">

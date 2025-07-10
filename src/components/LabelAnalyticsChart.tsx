@@ -38,7 +38,7 @@ const fetchBlockspaceCoverage = async (): Promise<BlockspaceCoverageData[]> => {
     // Get all available chains from the API response
     const availableChains = Object.keys(data.data?.chains || {});
     
-    availableChains.forEach((chainKey, index) => {
+    availableChains.forEach((chainKey) => {
       // Skip the 'all_l2s' aggregate
       if (chainKey === 'all_l2s') return;
       
@@ -335,7 +335,9 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     }
   });
 
-  const labelColors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6'];
+  const labelColors = React.useMemo(() => [
+    '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6'
+  ], []); // Empty dependency array since colors are static
   
   // Generate colors dynamically based on the number of chains
   const generateChainColors = () => {
@@ -381,7 +383,7 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
       }))
       .filter(item => item.count > 0)
       .sort((a, b) => b.count - a.count);
-  }, [tagsDataFiltered, tagDefinitions]);
+  }, [tagsDataFiltered, tagDefinitions, labelColors]);
 
   // Process label data for the metric (all chains)
   const processedLabelDataAll: LabelData[] = React.useMemo(() => {
@@ -399,14 +401,14 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
       }, {} as Record<string, string>);
 
     return Object.entries(tagMapping)
-      .map(([key, label], index) => ({
+      .map(([key, label]) => ({
         name: label,
         count: tagsDataAll[key]?._count?._all || 0,
-        color: labelColors[index % labelColors.length]
+        color: labelColors[Object.keys(tagMapping).indexOf(key) % labelColors.length] || '#CBD5E0'
       }))
       .filter(item => item.count > 0)
       .sort((a, b) => b.count - a.count);
-  }, [tagsDataAll, tagDefinitions]);
+  }, [tagsDataAll, tagDefinitions, labelColors]);
 
   // Calculate total tag IDs after processedLabelDataAll is defined
   const totalTagIds = processedLabelDataAll.reduce((sum, item) => sum + item.count, 0);
@@ -777,7 +779,7 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
                 </div>
               </div>
 
-              {blockspaceCoverageData.map((chain, index) => (
+              {blockspaceCoverageData.map((chain) => (
                 <div key={chain.chainName} className="group hover:bg-gray-50 rounded-lg p-2.5 transition-colors">
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center space-x-3">

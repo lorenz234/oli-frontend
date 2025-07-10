@@ -17,7 +17,7 @@ interface ChainMetadata {
   name: string;
   caip2: string;
   colors: ChainColors;
-  logo: ChainLogo;
+  logo: ChainLogo | null;
   shortName: string;
   description: string;
 }
@@ -275,6 +275,172 @@ export const CHAINS: ChainMetadata[] = [
       height: 15
     },
     description: 'Unichain is a Layer 2 optimistic rollup built on the OP Stack, designed to enhance the Uniswap ecosystem with faster and cheaper transactions.'
+  },
+  {
+    id: 'polygon',
+    name: 'Polygon',
+    shortName: 'Polygon',
+    caip2: 'eip155:137',
+    colors: {
+      light: ['#8247E5', '#8247E5'],
+      dark: ['#8247E5', '#8247E5'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M11.2217 4.36621L9.11719 3.07812C8.68555 2.8125 8.09766 2.8125 7.66602 3.07812L5.56152 4.36621L3.95703 5.32812C3.52539 5.59375 2.9375 5.59375 2.50586 5.32812L1.60156 4.76562C1.16992 4.5 0.917969 4.02344 0.917969 3.49219V2.42188C0.917969 1.89062 1.11523 1.41406 1.60156 1.14844L2.50586 0.585938C2.9375 0.320312 3.52539 0.320312 3.95703 0.585938L4.86133 1.14844C5.29297 1.41406 5.54492 1.89062 5.54492 2.42188V3.60156L7.09766 2.66406V1.48438C7.09766 0.953125 6.90039 0.476562 6.41406 0.210938L3.01172 -1.52588e-05C2.58008 -0.265631 1.99219 -0.265631 1.56055 -1.52588e-05L-1.80664 0.210938C-2.29297 0.476562 -2.54492 0.953125 -2.54492 1.48438V4.76562C-2.54492 5.29688 -2.34766 5.77344 -1.86133 6.03906L1.54102 8.24219C1.97266 8.50781 2.56055 8.50781 2.99219 8.24219L5.54492 6.73438L7.09766 5.79688L9.60156 4.28906C10.0332 4.02344 10.6211 4.02344 11.0527 4.28906L11.957 4.85156C12.3887 5.11719 12.6406 5.59375 12.6406 6.125V7.19531C12.6406 7.72656 12.4434 8.20312 11.957 8.46875L11.0527 9.03125C10.6211 9.29688 10.0332 9.29688 9.60156 9.03125L8.69727 8.46875C8.26562 8.20312 8.01367 7.72656 8.01367 7.19531V6.01562L6.46094 6.95312V8.13281C6.46094 8.66406 6.6582 9.14062 7.14453 9.40625L10.5469 11.6094C10.9785 11.875 11.5664 11.875 11.998 11.6094L15.4004 9.40625C15.8867 9.14062 16.1387 8.66406 16.1387 8.13281V4.85156C16.1387 4.32031 15.9414 3.84375 15.4551 3.57812L11.2217 4.36621Z" fill="currentColor"/>',
+      width: 17,
+      height: 12
+    },
+    description: 'Polygon is a popular sidechain/commit-chain that uses Plasma and Proof-of-Stake. It offers fast and cheap transactions for Ethereum DApps.'
+  },
+  {
+    id: 'bnb_chain',
+    name: 'BNB Smart Chain',
+    shortName: 'BNB Chain',
+    caip2: 'eip155:56',
+    colors: {
+      light: ['#F0B90B', '#F0B90B'],
+      dark: ['#F0B90B', '#F0B90B'],
+      darkTextOnBackground: true
+    },
+    logo: {
+      body: '<path d="M7.5 1.5L9.5 3.5L7.5 5.5L5.5 3.5L7.5 1.5ZM2.5 4.5L4.5 6.5L2.5 8.5L0.5 6.5L2.5 4.5ZM12.5 4.5L14.5 6.5L12.5 8.5L10.5 6.5L12.5 4.5ZM7.5 7.5L11.5 11.5L9.5 13.5L7.5 11.5L5.5 13.5L3.5 11.5L7.5 7.5Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'BNB Smart Chain is a blockchain platform developed by Binance, offering fast and low-cost transactions with EVM compatibility.'
+  },
+  {
+    id: 'avalanche',
+    name: 'Avalanche C-Chain',
+    shortName: 'Avalanche',
+    caip2: 'eip155:43114',
+    colors: {
+      light: ['#E84142', '#E84142'],
+      dark: ['#E84142', '#E84142'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M12.2812 9.0625H10.5938L7.5 3.75L4.40625 9.0625H2.71875L7.5 0.9375L12.2812 9.0625ZM8.90625 11.25H6.09375C5.76562 11.25 5.51562 11.4844 5.625 11.7969L6.32812 13.5938C6.42188 13.8281 6.65625 14.0625 6.89062 14.0625H8.10938C8.34375 14.0625 8.57812 13.8281 8.67188 13.5938L9.375 11.7969C9.48438 11.4844 9.23438 11.25 8.90625 11.25ZM11.7188 11.25H10.3125C9.98438 11.25 9.73438 11.4844 9.84375 11.7969L10.2656 12.8906C10.3594 13.125 10.5938 13.3594 10.8281 13.3594H11.4844C11.7188 13.3594 11.9531 13.125 12.0469 12.8906L12.4688 11.7969C12.5781 11.4844 12.3281 11.25 11.7188 11.25ZM4.6875 11.25H3.28125C2.95312 11.25 2.70312 11.4844 2.8125 11.7969L3.23438 12.8906C3.32812 13.125 3.5625 13.3594 3.79688 13.3594H4.45312C4.6875 13.3594 4.92188 13.125 5.01562 12.8906L5.4375 11.7969C5.54688 11.4844 5.29688 11.25 4.6875 11.25Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Avalanche is a fast, low-cost blockchain platform with sub-second finality and high throughput, fully compatible with Ethereum tools and dApps.'
+  },
+  {
+    id: 'fantom',
+    name: 'Fantom',
+    shortName: 'Fantom',
+    caip2: 'eip155:250',
+    colors: {
+      light: ['#1969FF', '#1969FF'],
+      dark: ['#1969FF', '#1969FF'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M7.5 0L2.68945 2.84375V12.1562L7.5 15L12.3105 12.1562V2.84375L7.5 0ZM10.8223 10.9395L7.5 12.7734L4.17773 10.9395V4.06055L7.5 2.22656L10.8223 4.06055V10.9395ZM9.375 5.625H5.625V6.5625H9.375V5.625ZM9.375 7.5H5.625V8.4375H9.375V7.5ZM8.4375 9.375H5.625V10.3125H8.4375V9.375Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Fantom is a high-performance, scalable blockchain platform using a novel consensus mechanism called Lachesis for near-instant transactions.'
+  },
+  {
+    id: 'polygon_zkevm',
+    name: 'Polygon zkEVM',
+    shortName: 'Polygon zkEVM',
+    caip2: 'eip155:1101',
+    colors: {
+      light: ['#8945FF', '#8945FF'],
+      dark: ['#8945FF', '#8945FF'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M11.2217 4.36621L9.11719 3.07812C8.68555 2.8125 8.09766 2.8125 7.66602 3.07812L5.56152 4.36621L3.95703 5.32812C3.52539 5.59375 2.9375 5.59375 2.50586 5.32812L1.60156 4.76562C1.16992 4.5 0.917969 4.02344 0.917969 3.49219V2.42188C0.917969 1.89062 1.11523 1.41406 1.60156 1.14844L2.50586 0.585938C2.9375 0.320312 3.52539 0.320312 3.95703 0.585938L4.86133 1.14844C5.29297 1.41406 5.54492 1.89062 5.54492 2.42188V3.60156L7.09766 2.66406V1.48438C7.09766 0.953125 6.90039 0.476562 6.41406 0.210938L3.01172 -1.52588e-05C2.58008 -0.265631 1.99219 -0.265631 1.56055 -1.52588e-05L-1.80664 0.210938C-2.29297 0.476562 -2.54492 0.953125 -2.54492 1.48438V4.76562C-2.54492 5.29688 -2.34766 5.77344 -1.86133 6.03906L1.54102 8.24219C1.97266 8.50781 2.56055 8.50781 2.99219 8.24219L5.54492 6.73438L7.09766 5.79688L9.60156 4.28906C10.0332 4.02344 10.6211 4.02344 11.0527 4.28906L11.957 4.85156C12.3887 5.11719 12.6406 5.59375 12.6406 6.125V7.19531C12.6406 7.72656 12.4434 8.20312 11.957 8.46875L11.0527 9.03125C10.6211 9.29688 10.0332 9.29688 9.60156 9.03125L8.69727 8.46875C8.26562 8.20312 8.01367 7.72656 8.01367 7.19531V6.01562L6.46094 6.95312V8.13281C6.46094 8.66406 6.6582 9.14062 7.14453 9.40625L10.5469 11.6094C10.9785 11.875 11.5664 11.875 11.998 11.6094L15.4004 9.40625C15.8867 9.14062 16.1387 8.66406 16.1387 8.13281V4.85156C16.1387 4.32031 15.9414 3.84375 15.4551 3.57812L11.2217 4.36621Z" fill="currentColor"/><circle cx="12" cy="3" r="1.5" fill="currentColor"/>',
+      width: 17,
+      height: 12
+    },
+    description: 'Polygon zkEVM is a Zero-Knowledge rollup that provides Ethereum Virtual Machine equivalence with the security of cryptographic proofs.'
+  },
+  {
+    id: 'gnosis',
+    name: 'Gnosis Chain',
+    shortName: 'Gnosis',
+    caip2: 'eip155:100',
+    colors: {
+      light: ['#04795B', '#04795B'],
+      dark: ['#04795B', '#04795B'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M7.5 0C3.35786 0 0 3.35786 0 7.5C0 11.6421 3.35786 15 7.5 15C11.6421 15 15 11.6421 15 7.5C15 3.35786 11.6421 0 7.5 0ZM11.25 7.5C11.25 9.57107 9.57107 11.25 7.5 11.25C5.42893 11.25 3.75 9.57107 3.75 7.5C3.75 5.42893 5.42893 3.75 7.5 3.75C9.57107 3.75 11.25 5.42893 11.25 7.5ZM7.5 2.8125C7.5 2.8125 6.5625 2.8125 6.5625 3.75C6.5625 4.6875 7.5 4.6875 7.5 4.6875C7.5 4.6875 8.4375 4.6875 8.4375 3.75C8.4375 2.8125 7.5 2.8125 7.5 2.8125Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Gnosis Chain is a stable payment blockchain designed for fast and inexpensive transactions, formerly known as xDAI Chain.'
+  },
+  {
+    id: 'moonbeam',
+    name: 'Moonbeam',
+    shortName: 'Moonbeam',
+    caip2: 'eip155:1284',
+    colors: {
+      light: ['#53CBC8', '#53CBC8'],
+      dark: ['#53CBC8', '#53CBC8'],
+      darkTextOnBackground: true
+    },
+    logo: {
+      body: '<path d="M7.5 0C3.35786 0 0 3.35786 0 7.5C0 11.6421 3.35786 15 7.5 15C11.6421 15 15 11.6421 15 7.5C15 3.35786 11.6421 0 7.5 0ZM7.5 12.1875C4.92857 12.1875 2.8125 10.0714 2.8125 7.5C2.8125 4.92857 4.92857 2.8125 7.5 2.8125C10.0714 2.8125 12.1875 4.92857 12.1875 7.5C12.1875 10.0714 10.0714 12.1875 7.5 12.1875ZM7.5 4.6875C6.96429 4.6875 6.5625 5.08929 6.5625 5.625C6.5625 6.16071 6.96429 6.5625 7.5 6.5625C8.03571 6.5625 8.4375 6.16071 8.4375 5.625C8.4375 5.08929 8.03571 4.6875 7.5 4.6875ZM9.84375 7.96875C9.51562 7.96875 9.375 8.0625 9.375 8.0625C9.375 8.0625 9.23438 7.96875 8.90625 7.96875C8.57812 7.96875 8.4375 8.0625 8.4375 8.0625C8.4375 8.0625 8.29688 7.96875 7.96875 7.96875C7.64062 7.96875 7.5 8.0625 7.5 8.0625C7.5 8.0625 7.35938 7.96875 7.03125 7.96875C6.70312 7.96875 6.5625 8.0625 6.5625 8.0625C6.5625 8.0625 6.42188 7.96875 6.09375 7.96875C5.76562 7.96875 5.625 8.0625 5.625 8.0625V9.84375H9.375V8.0625C9.375 8.0625 9.51562 7.96875 9.84375 7.96875Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Moonbeam is a Polkadot parachain that provides Ethereum compatibility, allowing developers to deploy existing Solidity smart contracts and DApp frontends.'
+  },
+  {
+    id: 'cronos',
+    name: 'Cronos',
+    shortName: 'Cronos',
+    caip2: 'eip155:25',
+    colors: {
+      light: ['#002D74', '#002D74'],
+      dark: ['#0E4FBF', '#0E4FBF'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M7.5 0L1.875 3.75V11.25L7.5 15L13.125 11.25V3.75L7.5 0ZM11.7188 10.3125L7.5 12.6562L3.28125 10.3125V4.6875L7.5 2.34375L11.7188 4.6875V10.3125ZM7.5 4.21875C6.64062 4.21875 5.9375 4.92188 5.9375 5.78125C5.9375 6.64062 6.64062 7.34375 7.5 7.34375C8.35938 7.34375 9.0625 6.64062 9.0625 5.78125C9.0625 4.92188 8.35938 4.21875 7.5 4.21875ZM10.3125 8.4375H4.6875V9.375H10.3125V8.4375Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Cronos is the EVM-compatible blockchain built by Crypto.com, designed for DeFi, NFTs, and the metaverse with fast and low-cost transactions.'
+  },
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    shortName: 'Aurora',
+    caip2: 'eip155:1313161554',
+    colors: {
+      light: ['#70D44B', '#70D44B'],
+      dark: ['#70D44B', '#70D44B'],
+      darkTextOnBackground: true
+    },
+    logo: {
+      body: '<path d="M7.5 0C3.35786 0 0 3.35786 0 7.5C0 11.6421 3.35786 15 7.5 15C11.6421 15 15 11.6421 15 7.5C15 3.35786 11.6421 0 7.5 0ZM7.5 1.875C10.6071 1.875 13.125 4.39286 13.125 7.5C13.125 10.6071 10.6071 13.125 7.5 13.125C4.39286 13.125 1.875 10.6071 1.875 7.5C1.875 4.39286 4.39286 1.875 7.5 1.875ZM5.625 4.6875L3.75 7.5L5.625 10.3125H9.375L11.25 7.5L9.375 4.6875H5.625ZM7.5 5.625C8.03571 5.625 8.4375 6.02679 8.4375 6.5625C8.4375 7.09821 8.03571 7.5 7.5 7.5C6.96429 7.5 6.5625 7.09821 6.5625 6.5625C6.5625 6.02679 6.96429 5.625 7.5 5.625Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Aurora is an Ethereum Virtual Machine created by the team at the NEAR Protocol, delivering a turn-key solution for developers to operate their apps on an Ethereum-compatible, high-throughput, scalable and future-safe platform.'
+  },
+  {
+    id: 'any',
+    name: 'Any EVM Chain',
+    shortName: 'Any EVM Chain',
+    caip2: 'eip155:any',
+    colors: {
+      light: ['#6B7280', '#9CA3AF'],
+      dark: ['#9CA3AF', '#D1D5DB'],
+      darkTextOnBackground: false
+    },
+    logo: null,
+    description: 'Tag applied to indicate that the attestation is not specific to a single chain but is applicable to all EVM chains.'
   },
 ];
 

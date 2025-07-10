@@ -772,7 +772,7 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
                     <p className="text-2xl font-bold text-purple-600">
                       {blockspaceCoverageData.reduce((sum, chain) => sum + (chain.totalTransactions * chain.labeledPercentage / 100), 0).toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-600">Total Transactions Labeled</p>
+                    <p className="text-sm text-gray-600">Transactions Labeled</p>
                   </div>
                 </div>
               </div>

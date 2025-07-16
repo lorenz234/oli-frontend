@@ -1,0 +1,945 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Attestation } from '@/services/attestationService';
+import { CHAINS } from '@/constants/chains';
+
+interface AttestationField {
+  name: string;
+  value: {
+    value: string | number | boolean | null;
+    type?: string;
+  };
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  category: string;
+  createdAt: number;
+  rawValue: string | number | boolean | null;
+}
+
+interface ParsedAttestation {
+  attester: string;
+  timeCreated: number;
+  txid: string;
+  isOffchain: boolean;
+  revoked: boolean;
+  tags: Tag[];
+  chainId?: string;
+  decodedDataJson: string;
+}
+
+interface ContractMetadata {
+  isContract: boolean;
+  contractName?: string;
+  deploymentTx?: string;
+  deployerAddress?: string;
+  deploymentDate?: string;
+  ownerProject?: string;
+  usageCategory?: string;
+}
+
+interface GrowthePieData {
+  name?: string;
+  owner_project?: string;
+  owner_project_clear?: string;
+  usage_category?: string;
+  txcount?: number;
+  gas_fees_usd?: number;
+  daa?: number;
+  chains?: string[];
+  allChainData?: Array<{
+    chain: string;
+    chain_id?: string;
+    name?: string;
+    owner_project?: string;
+    owner_project_clear?: string;
+    usage_category?: string;
+    txcount?: number;
+    gas_fees_usd?: number;
+    daa?: number;
+  }>;
+}
+
+interface SearchContractCardProps {
+  address: string;
+  attestations: Attestation[];
+  onAttest?: () => void;
+  onSelectAttestation?: (attestation: ParsedAttestation) => void;
+}
+
+const GROWTHEPIE_ATTESTER = '0xA725646c05e6Bb813d98C5aBB4E72DF4bcF00B56';
+
+// Helper function to get chain colors
+const getChainColors = (chainName: string) => {
+  const normalizedChainName = chainName.toLowerCase().replace('_', '');
+  const chain = CHAINS.find(c => 
+    c.id === normalizedChainName || 
+    c.name.toLowerCase().replace(/\s+/g, '') === normalizedChainName ||
+    c.shortName.toLowerCase().replace(/\s+/g, '') === normalizedChainName
+  );
+  
+  if (chain) {
+    return {
+      background: `linear-gradient(135deg, ${chain.colors.light[0]}20, ${chain.colors.light[1]}10)`,
+      border: `${chain.colors.light[0]}40`,
+      text: chain.colors.light[0],
+      accent: chain.colors.light[0]
+    };
+  }
+  
+  // Default colors if chain not found
+  return {
+    background: 'linear-gradient(135deg, #f3f4f620, #e5e7eb10)',
+    border: '#e5e7eb',
+    text: '#6b7280',
+    accent: '#6b7280'
+  };
+};
+
+const SearchContractCard: React.FC<SearchContractCardProps> = ({ 
+  address, 
+  attestations, 
+  onAttest,
+  onSelectAttestation
+}) => {
+  const [copied, setCopied] = useState(false);
+  const [growthePieData, setGrowthePieData] = useState<GrowthePieData | null>(null);
+  const [expandedAttestation, setExpandedAttestation] = useState<string | null>(null);
+  const [showAllAttestations, setShowAllAttestations] = useState(false);
+  const [showChainMatches, setShowChainMatches] = useState(false);
+
+  // Check if any attestation is from growthepie
+  const hasGrowthePieAttestation = attestations.some(
+    attestation => attestation.attester.toLowerCase() === GROWTHEPIE_ATTESTER.toLowerCase()
+  );
+
+  // Parse contract metadata from attestations
+  const getContractMetadata = (): ContractMetadata => {
+    let isContract = false;
+    let contractName: string | undefined;
+    let deploymentTx: string | undefined;
+    let deployerAddress: string | undefined;
+    let deploymentDate: string | undefined;
+    let ownerProject: string | undefined;
+    let usageCategory: string | undefined;
+
+    attestations.forEach(attestation => {
+      try {
+        const fields = JSON.parse(attestation.decodedDataJson) as AttestationField[];
+        const tagsField = fields.find(field => field.name === 'tags_json');
+        
+        if (tagsField && tagsField.value && typeof tagsField.value.value === 'string') {
+          const tagsObject = JSON.parse(tagsField.value.value) as Record<string, string | number | boolean | null>;
+          
+          // Extract contract metadata
+          if (tagsObject.is_contract === true || tagsObject.is_contract === 'true') {
+            isContract = true;
+          }
+          if (tagsObject.contract_name && typeof tagsObject.contract_name === 'string') {
+            contractName = tagsObject.contract_name;
+          }
+          if (tagsObject.deployment_tx && typeof tagsObject.deployment_tx === 'string') {
+            deploymentTx = tagsObject.deployment_tx;
+          }
+          if (tagsObject.deployer_address && typeof tagsObject.deployer_address === 'string') {
+            deployerAddress = tagsObject.deployer_address;
+          }
+          if (tagsObject.deployment_date && typeof tagsObject.deployment_date === 'string') {
+            deploymentDate = tagsObject.deployment_date;
+          }
+          if (tagsObject.owner_project && typeof tagsObject.owner_project === 'string') {
+            ownerProject = tagsObject.owner_project;
+          }
+          if (tagsObject.usage_category && typeof tagsObject.usage_category === 'string') {
+            usageCategory = tagsObject.usage_category;
+          }
+        }
+      } catch (error) {
+        console.warn('Could not parse contract metadata from attestation:', error);
+      }
+    });
+
+    return {
+      isContract,
+      contractName,
+      deploymentTx,
+      deployerAddress,
+      deploymentDate,
+      ownerProject,
+      usageCategory
+    };
+  };
+
+  const contractMetadata = getContractMetadata();
+
+  // Get chain information from attestations
+  const getChainFromAttestations = () => {
+    for (const attestation of attestations) {
+      try {
+        const fields = JSON.parse(attestation.decodedDataJson) as AttestationField[];
+        const chainIdField = fields.find((field) => field.name === 'chain_id');
+        if (chainIdField && chainIdField.value && chainIdField.value.value) {
+          const chainId = String(chainIdField.value.value);
+          const chain = CHAINS.find(c => c.caip2 === chainId);
+          return chain;
+        }
+      } catch (error) {
+        console.warn('Could not extract chain ID:', error);
+      }
+    }
+    return null;
+  };
+
+  const chainMetadata = getChainFromAttestations();
+
+  // Extract chain ID from attestation
+  const extractChainId = (attestation: Attestation): string | undefined => {
+    try {
+      const fields = JSON.parse(attestation.decodedDataJson) as AttestationField[];
+      const chainIdField = fields.find((field) => field.name === 'chain_id');
+      if (chainIdField && chainIdField.value && chainIdField.value.value) {
+        return String(chainIdField.value.value);
+      }
+      return undefined;
+    } catch (error) {
+      console.warn('Could not extract chain ID:', error);
+      return undefined;
+    }
+  };
+
+  // Parse attestations with full metadata
+  const parsedAttestations: ParsedAttestation[] = attestations.map(attestation => {
+    const tags: Tag[] = [];
+    
+    try {
+      const fields = JSON.parse(attestation.decodedDataJson) as AttestationField[];
+      const tagsField = fields.find(field => field.name === 'tags_json');
+      
+      if (tagsField && tagsField.value && typeof tagsField.value.value === 'string') {
+        const tagsObject = JSON.parse(tagsField.value.value) as Record<string, string | number | boolean | null>;
+        
+        Object.entries(tagsObject).forEach(([key, value]) => {
+          tags.push({
+            id: `${attestation.txid || attestation.timeCreated}-${key}`,
+            name: `${key}: ${String(value)}`,
+            category: 'Contract Tag',
+            createdAt: Number(attestation.timeCreated),
+            rawValue: value
+          });
+        });
+      }
+    } catch (error) {
+      console.warn('Could not parse tags from attestation:', error);
+    }
+    
+    return {
+      attester: attestation.attester,
+      timeCreated: Number(attestation.timeCreated),
+      txid: attestation.txid,
+      isOffchain: attestation.isOffchain,
+      revoked: attestation.revoked,
+      tags,
+      chainId: extractChainId(attestation),
+      decodedDataJson: attestation.decodedDataJson
+    };
+  });
+
+
+
+  // Fetch growthepie data if we have a growthepie attestation
+  useEffect(() => {
+    if (hasGrowthePieAttestation && !growthePieData) {
+      fetch('https://api.growthepie.com/v1/labels/full.json')
+        .then(response => response.json())
+        .then(data => {
+          if (data.data && data.data.data) {
+            // Find all entries for this address across all chains
+            const allAddressData = data.data.data.filter((item: any[]) => 
+              item[0] && item[0].toLowerCase() === address.toLowerCase()
+            );
+            
+            if (allAddressData.length > 0 && data.data.types) {
+              const types = data.data.types;
+              const nameIndex = types.indexOf('name');
+              const chainIndex = types.indexOf('origin_key');
+              const chainIdIndex = types.indexOf('chain_id');
+              const ownerProjectIndex = types.indexOf('owner_project');
+              const ownerProjectClearIndex = types.indexOf('owner_project_clear');
+              const usageCategoryIndex = types.indexOf('usage_category');
+              const txCountIndex = types.indexOf('txcount');
+              const gasFeesIndex = types.indexOf('gas_fees_usd');
+              const daaIndex = types.indexOf('daa');
+              
+              // Aggregate data across all chains
+              let totalTxCount = 0;
+              let totalGasFees = 0;
+              let totalDaa = 0;
+              const chains = new Set<string>();
+              const allChainData: any[] = [];
+              
+              // Get the primary data (first entry or most complete entry)
+              const primaryData = allAddressData[0];
+              
+              allAddressData.forEach((contractData: any[]) => {
+                const chainName = chainIndex >= 0 ? contractData[chainIndex] : 'unknown';
+                const chainId = chainIdIndex >= 0 ? contractData[chainIdIndex] : undefined;
+                chains.add(chainName);
+                
+                const txCount = txCountIndex >= 0 ? (contractData[txCountIndex] || 0) : 0;
+                const gasFees = gasFeesIndex >= 0 ? (contractData[gasFeesIndex] || 0) : 0;
+                const daa = daaIndex >= 0 ? (contractData[daaIndex] || 0) : 0;
+                
+                totalTxCount += Number(txCount);
+                totalGasFees += Number(gasFees);
+                totalDaa += Number(daa);
+                
+                allChainData.push({
+                  chain: chainName,
+                  chain_id: chainId,
+                  name: nameIndex >= 0 ? contractData[nameIndex] : undefined,
+                  owner_project: ownerProjectIndex >= 0 ? contractData[ownerProjectIndex] : undefined,
+                  owner_project_clear: ownerProjectClearIndex >= 0 ? contractData[ownerProjectClearIndex] : undefined,
+                  usage_category: usageCategoryIndex >= 0 ? contractData[usageCategoryIndex] : undefined,
+                  txcount: txCount,
+                  gas_fees_usd: gasFees,
+                  daa: daa,
+                });
+              });
+              
+              setGrowthePieData({
+                name: nameIndex >= 0 ? primaryData[nameIndex] : undefined,
+                owner_project: ownerProjectIndex >= 0 ? primaryData[ownerProjectIndex] : undefined,
+                owner_project_clear: ownerProjectClearIndex >= 0 ? primaryData[ownerProjectClearIndex] : undefined,
+                usage_category: usageCategoryIndex >= 0 ? primaryData[usageCategoryIndex] : undefined,
+                txcount: totalTxCount,
+                gas_fees_usd: totalGasFees,
+                daa: totalDaa,
+                chains: Array.from(chains),
+                allChainData: allChainData,
+              });
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching growthepie data:', error);
+        });
+    }
+  }, [hasGrowthePieAttestation, address, growthePieData]);
+
+  // Format functions
+  function formatFullAddress(addr: string): string {
+    if (!addr) return '';
+    return addr.startsWith('0x') ? addr : `0x${addr}`;
+  }
+
+  const formatShortAddress = (address: string): string => {
+    if (!address) return '';
+    const addr = address.startsWith('0x') ? address : `0x${address}`;
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString();
+  };
+
+  const fullAddress = formatFullAddress(address);
+
+  // Get chain metadata or use default
+  const getSubtleGradient = (variant: 'header' | 'accent' = 'header') => {
+    // Use standard multichain gradient for multichain addresses
+    if (isMultichain()) {
+      if (variant === 'header') {
+        return 'linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(139, 69, 19, 0.75) 25%, rgba(220, 38, 127, 0.8) 50%, rgba(59, 130, 246, 0.75) 75%, rgba(168, 85, 247, 0.85) 100%)';
+      }
+      return 'linear-gradient(to right, rgba(99, 102, 241, 0.6), rgba(220, 38, 127, 0.8), rgba(168, 85, 247, 0.6))';
+    }
+    
+    if (!chainMetadata) {
+      return contractMetadata.isContract 
+        ? 'linear-gradient(to right, rgba(96, 165, 250, 0.9), rgba(147, 51, 234, 0.8), rgba(236, 72, 153, 0.9))'
+        : 'linear-gradient(to right, rgba(34, 197, 94, 0.9), rgba(59, 130, 246, 0.8), rgba(168, 85, 247, 0.9))';
+    }
+    
+    const [color1, color2] = chainMetadata.colors.dark;
+    const baseColor1 = color1;
+    const baseColor2 = color2 || color1;
+
+    const hexToRgba = (hex: string, opacity: number) => {
+      const cleanHex = hex.replace('#', '');
+      const r = parseInt(cleanHex.substring(0, 2), 16);
+      const g = parseInt(cleanHex.substring(2, 4), 16);
+      const b = parseInt(cleanHex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
+    if (variant === 'header') {
+      return `linear-gradient(135deg, 
+        ${hexToRgba(baseColor1, 0.85)}, 
+        ${hexToRgba(baseColor2 || baseColor1, 0.75)} 50%,
+        ${hexToRgba(baseColor1, 0.85)} 100%
+      )`;
+    }
+    
+    return `linear-gradient(to right,
+      ${hexToRgba(baseColor1, 0.6)},
+      ${hexToRgba(baseColor2, 0.8)},
+      ${hexToRgba(baseColor1, 0.6)}
+    )`;
+  };
+
+  const getChainName = () => {
+    if (growthePieData?.chains && growthePieData.chains.length > 1) {
+      return `${growthePieData.chains.length} Chains`;
+    }
+    if (growthePieData?.chains && growthePieData.chains.length === 1) {
+      const chainName = growthePieData.chains[0];
+      return chainName.charAt(0).toUpperCase() + chainName.slice(1).replace('_', ' ');
+    }
+    return chainMetadata?.name || 'Multiple Chains';
+  };
+
+  const isMultichain = () => {
+    return growthePieData?.chains && growthePieData.chains.length > 1;
+  };
+
+  const getEasScanUrl = () => {
+    // Default to Base chain for EAS scan
+    const defaultChain = chainMetadata?.name?.toLowerCase() === 'base' ? 'base' : 'base';
+    return `https://${defaultChain}.easscan.org/address/${fullAddress}`;
+  };
+
+  const toggleAttestation = (txid: string) => {
+    setExpandedAttestation(expandedAttestation === txid ? null : txid);
+  };
+
+  return (
+    <div 
+      className="contract-card bg-white border border-gray-200 rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:shadow-lg transition-all duration-200"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.08'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+      }}
+    >
+      {/* Document header */}
+      <div 
+        className="px-4 py-2 flex justify-between items-center backdrop-blur-sm"
+        style={{
+          background: getSubtleGradient('header')
+        }}
+      >
+        <div className="flex items-center space-x-2">
+          <span className="font-serif text-white text-xs tracking-wider">
+            {isMultichain() ? 'MULTICHAIN ADDRESS' : (contractMetadata.isContract || contractMetadata.contractName ? 'SMART CONTRACT' : 'ADDRESS')}
+          </span>
+          {hasGrowthePieAttestation && (
+            <span className="text-white text-xs font-medium flex items-center">
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Validated by growthepie
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-white font-serif italic">{getChainName()}</div>
+          <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs">
+            {attestations.length} attestation{attestations.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-6 pb-4 text-sm pt-5">
+        <div className="space-y-5">
+
+          {/* Address section */}
+          <div className="font-mono mb-5 flex items-center">
+            <div className="text-gray-600 text-xs uppercase mr-2 font-serif">
+              Address:
+            </div>
+            <div className="bg-white border border-gray-200 rounded px-2 py-1 text-gray-800 flex-grow flex items-center justify-between">
+              <span className="select-all">{fullAddress}</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(fullAddress);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="ml-2 text-gray-500 hover:text-gray-700 transition-colors"
+                title="Copy address"
+              >
+                {copied ? (
+                  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+
+          {/* Growthepie metrics */}
+          {growthePieData && (
+            <div className="mb-4">
+              {isMultichain() && (
+                <div className="text-xs text-gray-600 font-serif mb-2 text-center italic">
+                  Aggregated data from {growthePieData.chains?.length} chains (7-day period)
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                {growthePieData.txcount && (
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 relative group">
+                    <div className="text-gray-700 text-xs uppercase font-serif mb-1">
+                      Transaction Count {!isMultichain() ? '(7d)' : ''}
+                    </div>
+                    <div className="font-medium text-gray-900 flex items-center">
+                      <svg className="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                      </svg>
+                      {formatNumber(growthePieData.txcount)}
+                    </div>
+                    
+                    {/* Hover tooltip for transaction breakdown */}
+                    {isMultichain() && growthePieData?.allChainData && (
+                      <div className="absolute top-[120%] left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                        <div className="bg-white/80 backdrop-blur-md text-gray-800 text-xs rounded-lg p-3.5 shadow-lg min-w-48 border border-gray-100">
+                          <div className="font-medium mb-2 text-center text-gray-700">Transaction Count Breakdown</div>
+                          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                            {growthePieData.allChainData
+                              .filter(chain => (chain.txcount || 0) > 0)
+                              .map((chainData, index) => (
+                                <div key={`${chainData.chain}-${index}`} className="flex justify-between items-center">
+                                  <span className="text-gray-600 capitalize">
+                                    {chainData.chain.replace('_', ' ')}
+                                  </span>
+                                  <span className="text-gray-900 font-medium">
+                                    {formatNumber(chainData.txcount || 0)}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {growthePieData.gas_fees_usd && (
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 relative group">
+                    <div className="text-gray-700 text-xs uppercase font-serif mb-1">
+                      Gas Fees {!isMultichain() ? '(7d)' : ''} (USD)
+                    </div>
+                    <div className="font-medium text-gray-900 flex items-center">
+                      <svg className="w-3.5 h-3.5 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      ${formatNumber(Math.round(growthePieData.gas_fees_usd))}
+                    </div>
+                    
+                    {/* Hover tooltip for gas fees breakdown */}
+                    {isMultichain() && growthePieData?.allChainData && (
+                      <div className="absolute top-[120%] left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                        <div className="bg-white/80 backdrop-blur-md text-gray-800 text-xs rounded-lg p-3.5 shadow-lg min-w-48 border border-gray-100">
+                          <div className="font-medium mb-2 text-center text-gray-700">Gas Fees Breakdown</div>
+                          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                            {growthePieData.allChainData
+                              .filter(chain => (chain.gas_fees_usd || 0) > 0)
+                              .map((chainData, index) => (
+                                <div key={`${chainData.chain}-${index}`} className="flex justify-between items-center">
+                                  <span className="text-gray-600 capitalize">
+                                    {chainData.chain.replace('_', ' ')}
+                                  </span>
+                                  <span className="text-gray-900 font-medium">
+                                    ${formatNumber(Math.round(chainData.gas_fees_usd || 0))}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* Attestations section */}
+          {parsedAttestations.length > 0 && (
+            <div className="border-l-2 border-gray-200 pl-3 py-1">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-gray-700 text-sm">Attestations ({parsedAttestations.length})</div>
+                  {hasGrowthePieAttestation && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Validated by growthepie
+                    </span>
+                  )}
+                </div>
+                {parsedAttestations.length > 1 && (
+                  <button
+                    onClick={() => setShowAllAttestations(!showAllAttestations)}
+                    className="text-xs text-indigo-600 hover:text-indigo-800"
+                  >
+                    {showAllAttestations ? 'Show less' : 'Show all'}
+                  </button>
+                )}
+              </div>
+              
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(showAllAttestations ? parsedAttestations : parsedAttestations.slice(0, 2)).map((attestation) => (
+                  <div key={attestation.txid} className="bg-gray-50 rounded-md p-3 border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 font-mono">
+                          {formatShortAddress(attestation.attester)}
+                        </span>
+                        {attestation.chainId && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                            {CHAINS.find(c => c.caip2 === attestation.chainId)?.name || attestation.chainId}
+                          </span>
+                        )}
+                        {attestation.isOffchain && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
+                            Offchain
+                          </span>
+                        )}
+                        {attestation.revoked && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                            Revoked
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatTimestamp(attestation.timeCreated)}
+                      </div>
+                    </div>
+                    
+                    {/* Tags preview */}
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {attestation.tags.slice(0, 3).map((tag) => {
+                        const keyParts = tag.name.split(':');
+                        const key = keyParts[0].trim();
+                        const value = tag.rawValue === true || tag.rawValue === false 
+                          ? String(tag.rawValue)
+                          : tag.rawValue === null
+                            ? 'null'
+                            : String(tag.rawValue);
+                            
+                        return (
+                          <div 
+                            key={tag.id}
+                            className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100"
+                          >
+                            <span className="text-xs font-medium text-gray-500 mr-1">{key}:</span>
+                            <span className="text-xs text-indigo-700">{value}</span>
+                          </div>
+                        );
+                      })}
+                      {attestation.tags.length > 3 && (
+                        <button
+                          onClick={() => toggleAttestation(attestation.txid)}
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        >
+                          +{attestation.tags.length - 3} more
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Expanded tags */}
+                    {expandedAttestation === attestation.txid && attestation.tags.length > 3 && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <div className="flex flex-wrap gap-1">
+                          {attestation.tags.slice(3).map((tag) => {
+                            const keyParts = tag.name.split(':');
+                            const key = keyParts[0].trim();
+                            const value = tag.rawValue === true || tag.rawValue === false 
+                              ? String(tag.rawValue)
+                              : tag.rawValue === null
+                                ? 'null'
+                                : String(tag.rawValue);
+                                
+                            return (
+                              <div 
+                                key={tag.id}
+                                className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100"
+                              >
+                                <span className="text-xs font-medium text-gray-500 mr-1">{key}:</span>
+                                <span className="text-xs text-indigo-700">{value}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Action buttons */}
+                    <div className="flex justify-end gap-2 mt-2">
+                      {attestation.tags.length > 3 && (
+                        <button
+                          onClick={() => toggleAttestation(attestation.txid)}
+                          className="px-2 py-0.5 text-xs text-gray-600 hover:text-gray-800 flex items-center"
+                        >
+                          {expandedAttestation === attestation.txid ? (
+                            <>
+                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                              Less
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                              More
+                            </>
+                          )}
+                        </button>
+                      )}
+                      {onSelectAttestation && (
+                        <button
+                          onClick={() => onSelectAttestation(attestation)}
+                          className="px-2 py-0.5 text-xs bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 hover:bg-indigo-100 flex items-center"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit/Confirm
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Exact address matches on other chains */}
+          {growthePieData?.allChainData && (() => {
+            // Filter to only show unlabeled chains
+            const unlabeledChains = growthePieData.allChainData.filter(chainData => {
+              const chainId = chainData.chain_id;
+              return chainId ? !parsedAttestations.some(att => att.chainId === chainId) : true;
+            });
+
+            if (unlabeledChains.length === 0) return null;
+
+            return (
+              <div className="mt-4">
+                <div 
+                  className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100 transition-colors"
+                  onClick={() => setShowChainMatches(!showChainMatches)}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <div>
+                      <div className="text-sm font-medium text-blue-800">
+                        Unlabeled address matches found on {unlabeledChains.length} other chain{unlabeledChains.length !== 1 ? 's' : ''}
+                      </div>
+                      <div className="text-xs text-blue-600">
+                        Click to view details and create labels
+                      </div>
+                    </div>
+                  </div>
+                  <svg 
+                    className={`w-4 h-4 text-blue-600 transition-transform ${showChainMatches ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                {showChainMatches && (
+                  <div className="mt-3 space-y-3 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-medium text-gray-700">
+                        Would you like to instantly label these addresses?
+                      </div>
+                      <a
+                        href={(() => {
+                          const params = new URLSearchParams({
+                            address: fullAddress,
+                            bulk: 'true',
+                            chains: unlabeledChains.map(c => c.chain).join(',')
+                          });
+                          
+                          const mostRecentAttestation = parsedAttestations
+                            .sort((a, b) => b.timeCreated - a.timeCreated)[0];
+                          
+                          if (mostRecentAttestation?.tags) {
+                            mostRecentAttestation.tags.forEach(tag => {
+                              const [key, value] = tag.name.split(':').map(s => s.trim());
+                              if (key && value && key !== 'chain_id') {
+                                params.set(`tag_${key}`, value);
+                              }
+                            });
+                          }
+                          
+                          return `/attest?${params.toString()}`;
+                        })()}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Label All Chains
+                      </a>
+                    </div>
+
+                              <div className="space-y-3">
+            {unlabeledChains.map((chainData, index) => {
+              const chainName = chainData.chain;
+              const colors = getChainColors(chainName);
+              
+              return (
+                <div 
+                  key={`${chainName}-${index}`}
+                  className="group relative rounded-lg p-4 transition-all duration-200 hover:shadow-md"
+                  style={{
+                    background: colors.background,
+                    borderLeft: `4px solid ${colors.accent}`,
+                    border: `1px solid ${colors.border}`
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="font-semibold text-sm capitalize"
+                          style={{ color: colors.text }}
+                        >
+                          {chainName.replace('_', ' ')}
+                        </span>
+                        {chainData.name && (
+                          <span className="text-gray-500 text-xs">({chainData.name})</span>
+                        )}
+                      </div>
+                      {chainData.usage_category && (
+                        <span 
+                          className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{ 
+                            backgroundColor: `${colors.accent}15`,
+                            color: colors.accent 
+                          }}
+                        >
+                          {chainData.usage_category}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-6">
+                      {(chainData.txcount || 0) > 0 && (
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-1">
+                            <svg 
+                              className="w-3.5 h-3.5" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                              style={{ color: colors.accent }}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <span className="font-bold text-sm text-gray-800">
+                              {formatNumber(chainData.txcount || 0)}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500 font-medium">transactions</span>
+                        </div>
+                      )}
+                      {(chainData.gas_fees_usd || 0) > 0 && (
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-1">
+                            <svg 
+                              className="w-3.5 h-3.5" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                              style={{ color: colors.accent }}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-bold text-sm text-gray-800">
+                              ${formatNumber(Math.round(chainData.gas_fees_usd || 0))}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500 font-medium">gas fees</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Actions area */}
+        <div className="mt-5 pt-3 border-t border-dashed border-gray-200">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="text-gray-500 font-serif text-xs italic">
+                {attestations.length} attestation{attestations.length !== 1 ? 's' : ''} found for this address
+              </div>
+              <a 
+                href={getEasScanUrl()} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-gray-50 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200 text-xs flex items-center transition-colors"
+                title="View on EAS Scan for detailed attestation analysis"
+              >
+                <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 6H6C4.89543 6 4 6.89543 4 8V18C4 19.1046 4.89543 20 6 20H16C17.1046 20 18 19.1046 18 18V14M14 4H20M20 4V10M20 4L10 14" />
+                </svg>
+                EAS Scan
+              </a>
+            </div>
+            
+            {onAttest && (
+              <button
+                onClick={onAttest}
+                className="relative group overflow-hidden bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-xl text-sm font-serif flex items-center transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"
+              >
+                <span className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></span>
+                <svg className="w-3.5 h-3.5 mr-1.5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="relative z-10">Add Attestation</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SearchContractCard; 

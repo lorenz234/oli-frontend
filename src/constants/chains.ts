@@ -430,6 +430,23 @@ export const CHAINS: ChainMetadata[] = [
     description: 'Aurora is an Ethereum Virtual Machine created by the team at the NEAR Protocol, delivering a turn-key solution for developers to operate their apps on an Ethereum-compatible, high-throughput, scalable and future-safe platform.'
   },
   {
+    id: 'zircuit',
+    name: 'Zircuit',
+    shortName: 'Zircuit',
+    caip2: 'eip155:48900',
+    colors: {
+      light: ['#4A90E2', '#4A90E2'],
+      dark: ['#4A90E2', '#4A90E2'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M7.5 0L0 5.625V9.375L7.5 15L15 9.375V5.625L7.5 0ZM11.25 8.4375L7.5 11.25L3.75 8.4375V6.5625L7.5 3.75L11.25 6.5625V8.4375Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Zircuit is a Layer 2 solution designed to scale Ethereum by providing lower transaction fees and faster confirmation times while maintaining security.'
+  },
+  {
     id: 'any',
     name: 'Any EVM Chain',
     shortName: 'Any EVM Chain',

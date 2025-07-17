@@ -14,6 +14,7 @@ import { validateAddress, validateChain, validateCategory, validateBoolean } fro
 import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
 import { NotificationType, ConfirmationData } from '../../types/attestation';
 import { formFields } from '../../constants/formFields';
+import { CHAINS } from '../../constants/chains';
 
 // Types definitions
 interface RowData {
@@ -107,6 +108,103 @@ const BulkAttestationForm: React.FC = () => {
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [activeColumns, setActiveColumns] = useState<ColumnDefinition[]>(BASE_COLUMNS);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Show notification function
+  const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
+    setNotification({ message, type });
+  };
+
+  // Check for URL parameters to pre-fill data
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const address = urlParams.get('address');
+    const bulk = urlParams.get('bulk');
+    const chain = urlParams.get('chain');
+    const contractName = urlParams.get('contract_name');
+    const usageCategory = urlParams.get('usage_category');
+    const ownerProject = urlParams.get('owner_project');
+    const chains = urlParams.get('chains');
+    
+    if (address && bulk === 'true') {
+      // If multiple chains are specified, create multiple rows
+      if (chains) {
+        const chainList = chains.split(',');
+        const newRows = chainList.map(chainName => {
+          // Map chain names to CAIP-2 format
+          const chainId = (() => {
+            const chain = CHAINS.find(c => c.id.toLowerCase() === chainName.toLowerCase());
+            return chain?.caip2 || 'eip155:1'; // Default to Ethereum mainnet if not found
+          })();
+          
+          const row: RowData = {
+            ...EMPTY_ROW,
+            address: address,
+            chain_id: chainId,
+          };
+          
+          if (contractName) row.contract_name = contractName;
+          if (usageCategory) row.usage_category = usageCategory;
+          if (ownerProject) row.owner_project = ownerProject;
+          
+          // Add any tag_* parameters as additional fields
+          urlParams.forEach((value, key) => {
+            if (key.startsWith('tag_') && key !== 'tag_chain_id') {
+              const tagKey = key.substring(4); // Remove 'tag_' prefix
+              row[tagKey] = value;
+            }
+          });
+          
+          return row;
+        });
+        
+        setRows(newRows);
+        showNotification(`Pre-filled ${chainList.length} rows for address ${address} across multiple chains.`, 'success');
+      }
+      // Single chain/address pre-fill
+      else {
+        const row: RowData = {
+          ...EMPTY_ROW,
+          address: address
+        };
+        
+        if (chain) {
+          // Map chain name to CAIP-2 format
+          const chainId = (() => {
+            const matchedChain = CHAINS.find(c => c.id.toLowerCase() === chain.toLowerCase());
+            return matchedChain?.caip2 || 'eip155:1'; // Default to Ethereum mainnet if not found
+          })();
+          row.chain_id = chainId;
+        }
+        
+        if (contractName) row.contract_name = contractName;
+        if (usageCategory) row.usage_category = usageCategory;
+        if (ownerProject) row.owner_project = ownerProject;
+        
+        // Add any tag_* parameters as additional fields
+        urlParams.forEach((value, key) => {
+          if (key.startsWith('tag_') && key !== 'tag_chain_id') {
+            const tagKey = key.substring(4); // Remove 'tag_' prefix
+            row[tagKey] = value;
+          }
+        });
+        
+        setRows([row]);
+        
+        const prefilledFields = [
+          chain && 'chain',
+          contractName && 'contract name',
+          usageCategory && 'usage category',
+          ownerProject && 'owner project'
+        ].filter(Boolean).join(', ');
+        
+        const message = prefilledFields 
+          ? `Address ${address} pre-filled with ${prefilledFields}.`
+          : `Address ${address} pre-filled from search. Add chain information and other details.`;
+        
+        showNotification(message, 'success');
+      }
+    }
+  }, [showNotification]);
   
   // Fetch valid projects on component mount
   useEffect(() => {
@@ -238,10 +336,7 @@ const BulkAttestationForm: React.FC = () => {
     return isValid;
   };
 
-  // Show notification
-  const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
-    setNotification({ message, type });
-  };
+
 
   // Prepare confirmation data for modal
   const prepareConfirmationData = () => {

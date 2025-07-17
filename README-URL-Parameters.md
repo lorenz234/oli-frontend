@@ -1,14 +1,16 @@
-# OLI Attestation Form URL Parameters
+# OLI URL Parameters Documentation
+
+## Attestation Form URL Parameters
 
 The Open Labels Initiative (OLI) attestation form supports parametrized URLs that allow external websites to deep-link to the form with prefilled chain and address values.
 
-## Base URL
+### Base URL
 
 ```
 https://www.openlabelsinitiative.org/attest
 ```
 
-## Supported Parameters
+### Supported Parameters
 
 ### Address Parameters
 - `address`: The blockchain address or smart contract address to attest
@@ -165,3 +167,90 @@ const AttestationLink = ({ address, chain, children }) => {
 - Addresses should be valid Ethereum-style addresses (0x prefixed, 40 hex characters)
 - URL encoding is recommended for special characters
 - The form supports all existing functionality even when prefilled via URL parameters 
+
+## Search Page URL Parameters
+
+### Base URL
+
+```
+https://www.openlabelsinitiative.org/search
+```
+
+### Supported Parameters
+
+#### Address Parameters
+- `address`: The blockchain address or smart contract address to search for
+- `contract`: Alternative parameter name for the address (same functionality)
+
+#### Chain Parameters  
+- `chain`: The blockchain network (supports same formats as attestation form)
+- `chainId`: Alternative parameter name for the chain (same functionality)
+
+### Example URLs
+
+#### Basic address search
+```
+https://www.openlabelsinitiative.org/search?address=0x1234567890123456789012345678901234567890
+```
+
+#### Search with specific chain
+```
+https://www.openlabelsinitiative.org/search?address=0x1234567890123456789012345678901234567890&chain=base
+```
+
+#### Using chain ID
+```
+https://www.openlabelsinitiative.org/search?address=0x1234567890123456789012345678901234567890&chainId=8453
+```
+
+### Integration Examples
+
+#### JavaScript
+```javascript
+// Generate a URL for searching a specific address
+const generateSearchURL = (address, chain = '') => {
+  const baseURL = 'https://www.openlabelsinitiative.org/search';
+  const params = new URLSearchParams({ address });
+  if (chain) params.append('chain', chain);
+  return `${baseURL}?${params.toString()}`;
+};
+
+// Examples
+const url1 = generateSearchURL('0x1234567890123456789012345678901234567890');
+const url2 = generateSearchURL('0x1234567890123456789012345678901234567890', 'base');
+```
+
+#### React
+```jsx
+const SearchLink = ({ address, chain, children }) => {
+  const params = new URLSearchParams({ address });
+  if (chain) params.append('chain', chain);
+  const url = `https://www.openlabelsinitiative.org/search?${params.toString()}`;
+  
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+};
+
+// Usage
+<SearchLink address="0x1234567890123456789012345678901234567890" chain="base">
+  Search on OLI
+</SearchLink>
+```
+
+### Behavior
+
+When parameters are provided:
+1. The search is automatically executed for the provided address
+2. If a chain is specified, results are filtered to show attestations on that chain
+3. The address field is prefilled with the provided address
+4. Users can modify the search parameters and execute new searches
+5. All standard validation applies to the address format
+
+### Error Handling
+
+- If an invalid chain parameter is provided, all chains will be shown in the results
+- If an invalid address format is provided, the search will show appropriate validation errors
+- If no parameters are provided, the search page loads with empty fields ready for user input 

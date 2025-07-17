@@ -341,6 +341,46 @@ const TagDocumentation: React.FC = () => {
               {categoryGroups.map(renderCategoryGroup)}
             </div>
           )}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-700">
+              Valid values defined in:{' '}
+              <a 
+                href="https://github.com/openlabelsinitiative/OLI/blob/main/1_data_model/tags/valuesets/usage_category.yml"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline hover:text-blue-800"
+              >
+                usage_category.yml
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (tag.tag_id === 'owner_project') {
+      return (
+        <div>
+          <p className="text-gray-600 mb-3">{tag.description}</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">
+              Type: {tag.schema.type}
+            </span>
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-700">
+              For the complete list of valid project names, see:{' '}
+              <a 
+                href="https://github.com/opensource-observer/oss-directory/tree/main/data/projects"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline hover:text-blue-800"
+              >
+                OSS Directory Projects
+              </a>
+            </div>
+          </div>
         </div>
       );
     }
@@ -411,43 +451,21 @@ const TagDocumentation: React.FC = () => {
           </div>
         </div>
         
-        <div className="grid md:grid-cols-2 gap-6 p-6 sm:p-8 bg-white">
+        <div className="p-6 sm:p-8 bg-white">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Core Components</h3>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { label: 'address', desc: 'Hexadecimal public address of a smart contract or EOA' },
                 { label: 'chain_id', desc: 'CAIP-2 identifier (includes EIP-155)' },
-                { label: 'tag_id', desc: 'Unique identifier for the tag concept' },
-                { label: 'value', desc: 'The content/value of the applied tag' }
+                { label: 'tag_id', desc: 'Unique identifier for the tag type. Multiple tags can be applied to the same address+chain combination' },
+                { label: 'value', desc: 'The specific content/value assigned to the tag for this address' }
               ].map(item => (
                 <div key={item.label} className="bg-gray-50 p-4 rounded-lg">
                   <code className="text-sm font-medium text-indigo-600">{item.label}</code>
                   <p className="mt-1 text-sm text-gray-600">{item.desc}</p>
                 </div>
               ))}
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Value Sets</h3>
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <p className="text-gray-600 mb-4">Tags can have predefined value sets that are either:</p>
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 relative mt-1">
-                    <div className="absolute inset-0 bg-indigo-100 rounded-full"></div>
-                    <div className="absolute inset-1 bg-indigo-500 rounded-full"></div>
-                  </div>
-                  <p className="ml-3 text-gray-700">Internal (maintained in OLI repository)</p>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 relative mt-1">
-                    <div className="absolute inset-0 bg-purple-100 rounded-full"></div>
-                    <div className="absolute inset-1 bg-purple-500 rounded-full"></div>
-                  </div>
-                  <p className="ml-3 text-gray-700">External (maintained in other repositories)</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

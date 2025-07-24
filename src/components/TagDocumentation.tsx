@@ -341,6 +341,46 @@ const TagDocumentation: React.FC = () => {
               {categoryGroups.map(renderCategoryGroup)}
             </div>
           )}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-700">
+              Valid values defined in:{' '}
+              <a 
+                href="https://github.com/openlabelsinitiative/OLI/blob/main/1_data_model/tags/valuesets/usage_category.yml"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline hover:text-blue-800"
+              >
+                usage_category.yml
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (tag.tag_id === 'owner_project') {
+      return (
+        <div>
+          <p className="text-gray-600 mb-3">{tag.description}</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">
+              Type: {tag.schema.type}
+            </span>
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-700">
+              For the complete list of valid project names, see:{' '}
+              <a 
+                href="https://github.com/opensource-observer/oss-directory/tree/main/data/projects"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline hover:text-blue-800"
+              >
+                OSS Directory Projects
+              </a>
+            </div>
+          </div>
         </div>
       );
     }
@@ -397,57 +437,48 @@ const TagDocumentation: React.FC = () => {
                 The Open Labels Initiative provides a standardized framework for labeling blockchain addresses.
               </p>
             </div>
-            <a 
-              href="https://github.com/openlabelsinitiative/OLI/tree/main/1_data_model"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
-            >
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-              </svg>
-              View on GitHub
-            </a>
+            <div className="flex flex-col gap-3">
+              <a 
+                href="https://github.com/openlabelsinitiative/OLI/tree/main/1_data_model"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                </svg>
+                Docs on GitHub
+              </a>
+              <a 
+                href="https://github.com/openlabelsinitiative/OLI/blob/main/1_data_model/tags/tag_definitions.yml"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add new tag_id
+              </a>
+            </div>
           </div>
         </div>
         
-        <div className="grid md:grid-cols-2 gap-6 p-6 sm:p-8 bg-white">
+        <div className="p-6 sm:p-8 bg-white">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Core Components</h3>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { label: 'address', desc: 'Hexadecimal public address of a smart contract or EOA' },
                 { label: 'chain_id', desc: 'CAIP-2 identifier (includes EIP-155)' },
-                { label: 'tag_id', desc: 'Unique identifier for the tag concept' },
-                { label: 'value', desc: 'The content/value of the applied tag' }
+                { label: 'tag_id', desc: 'Unique identifier for the tag type. Multiple tags can be applied to the same address+chain combination.' },
+                { label: 'value', desc: 'The specific content/value assigned to the tag for this address' }
               ].map(item => (
                 <div key={item.label} className="bg-gray-50 p-4 rounded-lg">
                   <code className="text-sm font-medium text-indigo-600">{item.label}</code>
                   <p className="mt-1 text-sm text-gray-600">{item.desc}</p>
                 </div>
               ))}
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Value Sets</h3>
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <p className="text-gray-600 mb-4">Tags can have predefined value sets that are either:</p>
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 relative mt-1">
-                    <div className="absolute inset-0 bg-indigo-100 rounded-full"></div>
-                    <div className="absolute inset-1 bg-indigo-500 rounded-full"></div>
-                  </div>
-                  <p className="ml-3 text-gray-700">Internal (maintained in OLI repository)</p>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 relative mt-1">
-                    <div className="absolute inset-0 bg-purple-100 rounded-full"></div>
-                    <div className="absolute inset-1 bg-purple-500 rounded-full"></div>
-                  </div>
-                  <p className="ml-3 text-gray-700">External (maintained in other repositories)</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

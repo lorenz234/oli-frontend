@@ -152,20 +152,20 @@ const AddProjectForm = () => {
         if (filteredUrls.length > 0) {
           yaml += `${sectionName}:\n`;
           filteredUrls.forEach(url => {
-            yaml += `- url: ${url}\n`;
+            yaml += `  - url: ${url}\n`;
           });
         }
       };
       addUrlsSection('websites', projectData.websites);
-      if (projectData.social.discord.length > 1 || projectData.social.telegram.length > 1 || projectData.social.twitter.length > 1) {
+      if (projectData.social.discord.length > 0 || projectData.social.telegram.length > 0 || projectData.social.twitter.length > 0) {
           yaml += 'social:\n';
           const addSocialSection = (platform: 'twitter' | 'telegram' | 'discord') => {
               const filteredPlatform = projectData.social[platform].filter(item => item.url.trim());
               if (filteredPlatform.length > 0) {
-              yaml += `  ${platform}:\n`;
-              filteredPlatform.forEach(item => {
-                  yaml += `  - url: ${item.url}\n`;
-              });
+                yaml += `  ${platform}:\n`;
+                filteredPlatform.forEach(item => {
+                    yaml += `    - url: ${item.url}\n`;
+                });
               }
           };
           ['twitter', 'telegram', 'discord'].forEach(platform => {
@@ -182,7 +182,7 @@ const AddProjectForm = () => {
       }
       addUrlsSection('defillama', projectData.defillama);
       if (projectData.comments.trim()) {
-        yaml += `comments: |\n  ${projectData.comments.replace(/\n/g, '\n  ')}\n`;
+        yaml += `comments: |\n${projectData.comments.split('\n').map(line => `  ${line}`).join('\n')}\n`;
       }
       return yaml;
     };

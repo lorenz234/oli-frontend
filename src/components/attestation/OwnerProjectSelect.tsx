@@ -52,7 +52,16 @@ const OwnerProjectSelect = ({
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('https://api.growthepie.xyz/v1/labels/projects.json');
+        // Add cache-busting parameters to ensure fresh data on every request
+        const timestamp = Date.now();
+        const response = await fetch(`https://api.growthepie.xyz/v1/labels/projects.json?t=${timestamp}`, {
+          cache: 'no-store', // Prevent browser caching
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         const rawData = await response.json();
         
         // Transform the data structure with proper typing

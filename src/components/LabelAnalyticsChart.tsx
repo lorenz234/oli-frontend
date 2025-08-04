@@ -68,6 +68,7 @@ const fetchBlockspaceCoverage = async (): Promise<BlockspaceCoverageData[]> => {
     
     return results.sort((a, b) => b.labeledPercentage - a.labeledPercentage);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching blockspace coverage:', error);
     return [];
   }
@@ -85,6 +86,7 @@ const fetchTagDefinitions = async (): Promise<TagDefinition[]> => {
     // Extract tags from the nested structure
     return parsedYaml?.tags || [];
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching tag definitions:', error);
     return [];
   }
@@ -232,6 +234,7 @@ const LabelAnalyticsChart: React.FC = () => {
     const loadTagDefinitions = async () => {
       setIsLoadingTags(true);
       const tags = await fetchTagDefinitions();
+      // eslint-disable-next-line no-console
       console.log('Loaded tag definitions:', tags); // Debug log
       setTagDefinitions(tags);
       
@@ -298,30 +301,31 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
   }, [selectedChain, tagDefinitions]);
 
   // Fetch blockspace coverage data
-  useEffect(() => {
-    const loadBlockspaceCoverage = async () => {
-      setBlockspaceCoverageLoading(true);
-      setBlockspaceCoverageError(null);
-      try {
-        const data = await fetchBlockspaceCoverage();
-        setBlockspaceCoverageData(data);
-      } catch (error) {
-        setBlockspaceCoverageError('Failed to load blockspace coverage data');
-        console.error('Blockspace coverage error:', error);
-      } finally {
-        setBlockspaceCoverageLoading(false);
-      }
-    };
+  const loadBlockspaceCoverage = async () => {
+    setBlockspaceCoverageLoading(true);
+    setBlockspaceCoverageError(null);
+    try {
+      const data = await fetchBlockspaceCoverage();
+      setBlockspaceCoverageData(data);
+    } catch (error) {
+      setBlockspaceCoverageError('Failed to load blockspace coverage data');
+      // eslint-disable-next-line no-console
+      console.error('Blockspace coverage error:', error);
+    } finally {
+      setBlockspaceCoverageLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadBlockspaceCoverage();
   }, []);
 
-  const { data: tagsDataFiltered, loading: tagsFilteredLoading, error: tagsFilteredError } = useQuery(TAGS_COUNT_FILTERED || TAGS_COUNT_ALL);
-  const { data: tagsDataAll, loading: tagsLoadingAll, error: tagsErrorAll } = useQuery(TAGS_COUNT_ALL);
-  const { data: chainsData, loading: chainsLoading, error: chainsError } = useQuery(ATTESTATION_CHAIN_DISTRIBUTION);
-  const { data: totalAttestationsData, loading: totalAttestationsLoading, error: totalAttestationsError } = useQuery(TOTAL_ATTESTATIONS);
+  const { data: tagsDataFiltered, loading: tagsFilteredLoading, error: tagsFilteredError, refetch: refetchTagsFiltered } = useQuery(TAGS_COUNT_FILTERED || TAGS_COUNT_ALL);
+  const { data: tagsDataAll, loading: tagsLoadingAll, error: tagsErrorAll, refetch: refetchTagsAll } = useQuery(TAGS_COUNT_ALL);
+  const { data: chainsData, loading: chainsLoading, error: chainsError, refetch: refetchChains } = useQuery(ATTESTATION_CHAIN_DISTRIBUTION);
+  const { data: totalAttestationsData, loading: totalAttestationsLoading, error: totalAttestationsError, refetch: refetchTotalAttestations } = useQuery(TOTAL_ATTESTATIONS);
 
-  const { data: attestationDistributionData, loading: attestationDistributionLoading, error: attestationDistributionError } = useQuery<AttestationDistributionData>(ATTESTATION_DISTRIBUTION, {
+  const { data: attestationDistributionData, loading: attestationDistributionLoading, error: attestationDistributionError, refetch: refetchAttestationDistribution } = useQuery<AttestationDistributionData>(ATTESTATION_DISTRIBUTION, {
     variables: {
       by: ["isOffchain"],
       where: {
@@ -455,31 +459,7 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
 
   if (tagsLoadingAll || chainsLoading) return <LoadingAnimation />;
   
-  // Show debug information for errors - but don't block the entire component
-  if (tagsFilteredError || tagsErrorAll || chainsError || totalAttestationsError) {
-    console.error('GraphQL Errors:', {
-      tagsFilteredError: tagsFilteredError?.message,
-      tagsErrorAll: tagsErrorAll?.message,
-      chainsError: chainsError?.message, 
-      totalAttestationsError: totalAttestationsError?.message
-    });
-  }
 
-  // If all critical queries fail, show error
-  if (tagsErrorAll && chainsError) {
-    return (
-      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-8">
-        <div className="text-red-500 text-center">
-          <p className="font-semibold mb-2">Error loading label analytics</p>
-          {tagsFilteredError && <p className="text-sm mb-1">Tags Error: {tagsFilteredError.message}</p>}
-          {tagsErrorAll && <p className="text-sm mb-1">Tags All Error: {tagsErrorAll.message}</p>}
-          {chainsError && <p className="text-sm mb-1">Chains Error: {chainsError.message}</p>}
-          {totalAttestationsError && <p className="text-sm mb-1">Total Attestations Error: {totalAttestationsError.message}</p>}
-          <p className="text-sm mt-2 text-gray-600">Check browser console for more details</p>
-        </div>
-      </div>
-    );
-  }
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -512,7 +492,12 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
             ) : totalAttestationsError ? (
               <div className="text-center">
                 <p className="text-red-500 text-sm">Error loading</p>
-                <p className="text-xs text-gray-400 mt-1">Check network connection</p>
+                <button
+                  onClick={() => refetchTotalAttestations()}
+                  className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reload
+                </button>
               </div>
             ) : (
               <>
@@ -527,7 +512,15 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
           <div className="flex flex-col items-center justify-center h-full min-h-[60px]">
             <h3 className="text-lg font-semibold text-gray-600 mb-2">Tag_ID Count</h3>
             {tagsErrorAll ? (
-              <p className="text-red-500 text-sm">Error loading</p>
+              <div className="text-center">
+                <p className="text-red-500 text-sm">Error loading</p>
+                <button
+                  onClick={() => refetchTagsAll()}
+                  className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reload
+                </button>
+              </div>
             ) : (
               <>
                 <p className="text-4xl font-bold text-green-600">{totalTagIds.toLocaleString()}</p>
@@ -550,7 +543,12 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
             ) : attestationDistributionError ? (
               <div className="text-center">
                 <p className="text-red-500 text-sm">Error loading</p>
-                <p className="text-xs text-gray-400 mt-1">Check network connection</p>
+                <button
+                  onClick={() => refetchAttestationDistribution()}
+                  className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reload
+                </button>
               </div>
             ) : processedAttestationDistribution.length === 0 ? (
               <div className="text-center">
@@ -662,7 +660,12 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
               <div className="flex justify-center items-center h-96">
                 <div className="text-center">
                   <span className="text-red-500">Error loading chart data</span>
-                  <p className="text-sm text-gray-500 mt-1">Please try again</p>
+                  <button
+                    onClick={() => refetchTagsFiltered()}
+                    className="mt-3 px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                  >
+                    Reload
+                  </button>
                 </div>
               </div>
             ) : (
@@ -690,18 +693,34 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
         </div>
 
       {/* Blockchain Networks Card */}
-      {!chainsError && (
-        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Attestation Distribution ({processedChainData.reduce((sum, item) => sum + item.count, 0).toLocaleString()})
-            </h2>
-            <p className="text-gray-600">
-              Number of attestations for each blockchain networks.
-            </p>
-          </div>
+      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Attestation Distribution {!chainsError && `(${processedChainData.reduce((sum, item) => sum + item.count, 0).toLocaleString()})`}
+          </h2>
+          <p className="text-gray-600">
+            Number of attestations for each blockchain networks.
+          </p>
+        </div>
 
-          <div>
+        <div>
+          {chainsLoading ? (
+            <div className="flex justify-center items-center h-96">
+              <LoadingAnimation />
+            </div>
+          ) : chainsError ? (
+            <div className="flex justify-center items-center h-96">
+              <div className="text-center">
+                <span className="text-red-500">Error loading chart data</span>
+                <button
+                  onClick={() => refetchChains()}
+                  className="mt-3 px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reload
+                </button>
+              </div>
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={processedChainData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -721,9 +740,9 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
                 />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Blockspace Coverage Card */}
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] p-8">
@@ -745,7 +764,12 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
             <div className="flex justify-center items-center h-96">
               <div className="text-center">
                 <span className="text-red-500">Error loading blockspace coverage</span>
-                <p className="text-sm text-gray-500 mt-1">{blockspaceCoverageError}</p>
+                <button
+                  onClick={() => loadBlockspaceCoverage()}
+                  className="mt-3 px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                >
+                  Reload
+                </button>
               </div>
             </div>
           ) : blockspaceCoverageData.length === 0 ? (

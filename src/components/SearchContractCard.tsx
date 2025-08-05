@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Attestation } from '@/services/attestationService';
 import { CHAINS } from '@/constants/chains';
+import Tooltip from '@/components/attestation/Tooltip';
+import { resolveEnsName, getEnscribeUrl } from '@/utils/ens';
 
 interface AttestationField {
   name: string;
@@ -110,6 +112,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
   const [expandedAttestation, setExpandedAttestation] = useState<string | null>(null);
   const [showAllAttestations, setShowAllAttestations] = useState(false);
   const [showChainMatches, setShowChainMatches] = useState(false);
+  const [ensName, setEnsName] = useState<string | null>(null);
 
   // Check if any attestation is from growthepie
   const hasGrowthePieAttestation = attestations.some(
@@ -249,6 +252,17 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
 
 
 
+  const getChainName = useCallback(() => {
+    if (growthePieData?.chains && growthePieData.chains.length > 1) {
+      return `${growthePieData.chains.length} Chains`;
+    }
+    if (growthePieData?.chains && growthePieData.chains.length === 1) {
+      const chainName = growthePieData.chains[0];
+      return chainName.charAt(0).toUpperCase() + chainName.slice(1).replace('_', ' ');
+    }
+    return chainMetadata?.name || 'Multiple Chains';
+  }, [growthePieData, chainMetadata]);
+
   // Fetch growthepie data if we have a growthepie attestation
   useEffect(() => {
     if (hasGrowthePieAttestation && !growthePieData) {
@@ -329,6 +343,16 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
     }
   }, [hasGrowthePieAttestation, address, growthePieData]);
 
+  useEffect(() => {
+    const fetchEnsName = async () => {
+      const chainName = getChainName().toLowerCase();
+      const name = await resolveEnsName(address, chainName);
+      setEnsName(name);
+    };
+
+    fetchEnsName();
+  }, [address, getChainName]);
+
   // Format functions
   function formatFullAddress(addr: string): string {
     if (!addr) return '';
@@ -399,16 +423,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
     )`;
   };
 
-  const getChainName = () => {
-    if (growthePieData?.chains && growthePieData.chains.length > 1) {
-      return `${growthePieData.chains.length} Chains`;
-    }
-    if (growthePieData?.chains && growthePieData.chains.length === 1) {
-      const chainName = growthePieData.chains[0];
-      return chainName.charAt(0).toUpperCase() + chainName.slice(1).replace('_', ' ');
-    }
-    return chainMetadata?.name || 'Multiple Chains';
-  };
+
 
   const isMultichain = () => {
     return growthePieData?.chains && growthePieData.chains.length > 1;
@@ -453,6 +468,17 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-white font-serif italic">{getChainName()}</div>
+          {ensName && (
+            <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="4" fill="currentColor" fillOpacity="0.3"/>
+                <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Enscribed by Enscribe
+            </span>
+          )}
           <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs">
             {attestations.length} attestation{attestations.length !== 1 ? 's' : ''}
           </span>
@@ -463,13 +489,40 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
       <div className="px-6 pb-4 text-sm pt-5">
         <div className="space-y-5">
 
-          {/* Address section */}
           <div className="font-mono mb-5 flex items-center">
-            <div className="text-gray-600 text-xs uppercase mr-2 font-serif">
-              Address:
-            </div>
             <div className="bg-white border border-gray-200 rounded px-2 py-1 text-gray-800 flex-grow flex items-center justify-between">
-              <span className="select-all">{fullAddress}</span>
+              <div className="flex items-center">
+                <a
+                  href={getEnscribeUrl(fullAddress, getChainName().toLowerCase(), ensName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="select-all"
+                >
+                  {ensName || fullAddress}
+                </a>
+                {ensName && (
+                  <Tooltip content="This address has been associated with an ENS name via Enscribe." />
+                )}
+              </div>
+              {!ensName && (
+                <div className="flex items-center">
+                  <a 
+                    href={getEnscribeUrl(fullAddress, getChainName().toLowerCase(), ensName)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="group relative inline-flex items-center px-3 py-1 text-xs font-medium border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="32" height="32" rx="4" fill="currentColor" fillOpacity="0.3"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="ml-2">Are you the owner? Associate ENS via Enscribe!</span>
+                    <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </a>
+                </div>
+              )}
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(fullAddress);

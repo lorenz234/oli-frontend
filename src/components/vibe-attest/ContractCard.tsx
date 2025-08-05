@@ -5,6 +5,8 @@ import { UnlabeledContract } from '@/types/unlabeledContracts';
 import { CHAINS } from '@/constants/chains';
 import { fetchAttestationsByContract, Attestation } from '@/services/attestationService';
 import AttestationList from './AttestationList';
+import Tooltip from '@/components/attestation/Tooltip';
+import { resolveEnsName, getEnscribeUrl } from '@/utils/ens';
 
 // Cache for storing attestation results during the session
 const attestationCache: Record<string, Attestation[]> = {};
@@ -33,6 +35,7 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   const [attestations, setAttestations] = useState<Attestation[]>([]);
   const [showAttestationList, setShowAttestationList] = useState(false);
   const [hasBeenInView, setHasBeenInView] = useState(false);
+  const [ensName, setEnsName] = useState<string | null>(null);
   
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -118,9 +121,9 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   // Get chain name formatted for display
-  const getFormattedChainName = (chain: string): string => {
+  const getFormattedChainName = useCallback((chain: string): string => {
     return chainMetadata?.name || chain.toUpperCase().replace('_', ' ');
-  };
+  }, [chainMetadata]);
 
   // Check for existing attestations
   const checkAttestations = useCallback(async (forceCheck: boolean = false) => {
@@ -198,6 +201,15 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
       }
     };
   }, [hasBeenInView, isCheckingAttestations, attestations.length, checkAttestations]);
+
+  useEffect(() => {
+    const fetchEnsName = async () => {
+      const chainName = getFormattedChainName(contract.chain).toLowerCase();
+      const name = await resolveEnsName(fullAddress, chainName);
+      setEnsName(name);
+    };
+    fetchEnsName();
+  }, [contract.chain, fullAddress, getFormattedChainName]);
 
   // Handle a selected attestation for editing/confirming
   const handleSelectAttestation = (attestation: ParsedAttestation) => {
@@ -286,6 +298,17 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-white font-serif italic">{getFormattedChainName(contract.chain)}</div>
+          {ensName && (
+            <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="4" fill="currentColor" fillOpacity="0.3"/>
+                <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Enscribed by Enscribe
+            </span>
+          )}
           <button
             onClick={() => checkAttestations(true)}
             disabled={isCheckingAttestations}
@@ -408,9 +431,39 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
 
           {/* Address section with notary style */}
           <div className="font-mono mb-5 flex items-center">
-            <div className="text-gray-600 text-xs uppercase mr-2 font-serif">Contract Address:</div>
             <div className="bg-white border border-gray-200 rounded px-2 py-1 text-gray-800 flex-grow flex items-center justify-between">
-              <span className="select-all">{fullAddress}</span>
+              <div className="flex items-center">
+                <a
+                  href={getEnscribeUrl(fullAddress, contract.chain, ensName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="select-all"
+                >
+                  {ensName || fullAddress}
+                </a>
+                {ensName && (
+                  <Tooltip content="This address has been associated with an ENS name via Enscribe." />
+                )}
+              </div>
+              {!ensName && (
+                <div className="flex items-center">
+                  <a 
+                    href={getEnscribeUrl(fullAddress, contract.chain, ensName)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="group relative inline-flex items-center px-3 py-1 text-xs font-medium border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="32" height="32" rx="4" fill="currentColor" fillOpacity="0.3"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="ml-2">Are you the owner? Associate ENS via Enscribe!</span>
+                    <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </a>
+                </div>
+              )}
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(fullAddress);

@@ -49,24 +49,33 @@ export const resolveEnsName = async (address: string, chainName: string): Promis
 
     // 3. Fallback to The Graph for forward resolution on Ethereum
     if (network.subgraphApi) {
-      const query = `
-        query getDomains($address: String!) {
-          domains(first: 1, where: { resolvedAddress: $address }) {
-            name
+      try {
+        const query = `
+          query getDomains($address: String!) {
+            domains(first: 1, where: { resolvedAddress: $address }) {
+              name
+            }
           }
+        `;
+        const response = await fetch(network.subgraphApi, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            variables: { address: address.toLowerCase() },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Subgraph API request failed with status ${response.status}`);
         }
-      `;
-      const response = await fetch(network.subgraphApi, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          variables: { address: address.toLowerCase() },
-        }),
-      });
-      const data = await response.json();
-      if (data.data.domains && data.data.domains.length > 0) {
-        return data.data.domains[0].name;
+
+        const data = await response.json();
+        if (data.data.domains && data.data.domains.length > 0) {
+          return data.data.domains[0].name;
+        }
+      } catch (error) {
+        console.error(`Failed to fetch from subgraph API for ${network.name}:`, error);
       }
     }
 

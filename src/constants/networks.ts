@@ -54,7 +54,7 @@ export const NETWORKS: Record<number, NetworkConfig> = {
   8453: { // Base
     name: 'Base',
     rpcUrl: 'https://base.llamarpc.com',
-    subgraphApi: 'https://api.alpha.blue.ensnode.io/subgraph',
+    subgraphApi: 'https://base.easscan.org/subgraphs/name/ensdomains/ens',
     contracts: {
       ensRegistry: '0xB94704422c2a1E396835A571837Aa5AE53285a95',
       reverseRegistrar: '0x79EA96012eEa67A83431F1701B3dFf7e37F9E282',

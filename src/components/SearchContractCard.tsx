@@ -476,7 +476,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
                 <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              Enscribed by Enscribe
+              Enscribed
             </span>
           )}
           <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs">
@@ -501,7 +501,15 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
                   {ensName || fullAddress}
                 </a>
                 {ensName && (
-                  <Tooltip content="This address has been associated with an ENS name via Enscribe." />
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="ml-2">
+                      <rect width="32" height="32" rx="4" fill="currentColor" fillOpacity="0.3"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <Tooltip content="This address has been associated with an ENS." />
+                  </>
                 )}
               </div>
               {!ensName && (
@@ -518,7 +526,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
                       <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span className="ml-2">Are you the owner? Associate ENS via Enscribe!</span>
+                    <span className="ml-2">Associate ENS via Enscribe</span>
                     <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </a>
                 </div>

@@ -119,10 +119,7 @@ const parseCsvLine = (line: string): ParsedLine => {
     }
     values.push(currentValue);
 
-    if (inQuotes) {
-        return { values: [], error: 'Unterminated quote in CSV line.' };
-    }
-
+    // An unterminated quote is no longer a fatal error. We just accept the value as is.
     return { values: values.map(v => v.trim()) };
 };
 
@@ -233,27 +230,32 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
 
         if (values.every(val => val === '')) continue;
 
-        if (values.length !== headers.length) {
-            errors.push(`Row ${originalLineNumber} has ${values.length} cells, but header has ${headers.length}. Please check for extra or missing commas.`);
-            continue;
+        if (values.length > headers.length) {
+            warnings[rowIndex] = warnings[rowIndex] || [];
+            warnings[rowIndex].push({ message: `Row ${originalLineNumber} has more cells than the header. Extra cells will be ignored.` });
         }
-
+        
         const row: RowData = { ...emptyRow };
 
         for (let j = 0; j < headers.length; j++) {
+            if (j >= values.length) {
+                row[headers[j]] = ''; 
+                continue;
+            }
+            
             const header = headers[j];
             const fieldId = headerToFieldId[header];
 
-            if (fieldId && j < values.length) {
+            if (fieldId) {
                 let value = values[j];
                 const columnDef = detectedColumns.find(c => c.id === fieldId);
-
+                
                 if (fieldId === 'chain_id') {
                     value = convertChainId(value);
                 }
-
+                
                 row[fieldId] = cleanValue(value, columnDef);
-
+                
                 const fieldWarnings = await validateProjectField(fieldId, row[fieldId], true);
                 if (fieldWarnings.length > 0) {
                     const key = `${rowIndex}-${fieldId}`;

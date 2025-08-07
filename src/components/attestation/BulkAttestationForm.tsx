@@ -16,7 +16,8 @@ import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } f
 import { NotificationType, ConfirmationData, RowData, ColumnDefinition, AttestationResult, FieldValue, ValidationWarning } from '../../types/attestation';
 import { parseAndCleanCsv } from '../../utils/csvUtils';
 import { formFields } from '../../constants/formFields';
-import { validateProjectField } from '../../utils/projectValidation';
+
+import useValidationMemo from '../../hooks/useValidationMemo';
 import OwnerProjectInput from './OwnerProjectInput';
 import { CHAINS } from '../../constants/chains';
 
@@ -90,6 +91,7 @@ const BulkAttestationForm: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [warnings, setWarnings] = useState<{ [key: string]: ValidationWarning[] }>({});
+  const { validateFieldMemo } = useValidationMemo();
 
   // Show notification function
   const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
@@ -255,7 +257,7 @@ const BulkAttestationForm: React.FC = () => {
       
       if (field === 'owner_project' && value) {
         if (validProjects.length > 0 && !validProjects.includes(value)) {
-          const projectWarnings = await validateProjectField(field, value);
+          const projectWarnings = await validateFieldMemo(field, value);
           if (projectWarnings.length > 0) {
             newWarnings[warningKey] = projectWarnings;
           } else {

@@ -1,0 +1,10 @@
+"chain id","addres","contract_name","Owner project","usage_category","is_contract","deployment_tx","Unrecognized Column"
+"ethereum","0x765DE816845861e75A25fCA122bb6898B8B1282a","cUSD","mento-protocol","stablecoin","true","0x123...","ignored"
+"mainnet","0x6666666666666666666666666666666666666666","Malformed Row",,,
+"10","0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73","cEUR, with comma","mento-protocol","stablecoin","1","","ignored"
+"eip155:42161","0x4444444444444444444444444444444444444444","Final Contract","sushii","other","1","0xabc...","ignored"
+"polygon","0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787","cREAL","mento-protocol","stablecoin","yes","","ignored"
+"base","0xInvalidAddress","Should Fail Validation","mento-protocol","stablecoin","no","","ignored"
+"optimism",, "Missing Address","another-project","yield","true",,"ignored"
+"Malformed","0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359","MKR","makerdao","governance","true"
+"invalid_chain_name","0x5555555555555555555555555555555555555555","Invalid Chain","chain-project","utility","true","","ignored"

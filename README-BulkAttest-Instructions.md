@@ -73,6 +73,27 @@ The parser is designed to be resilient and will attempt to process as much of yo
 *   **Invalid Data**: If a field contains invalid data (e.g., an invalid address format), you will see a warning for that specific cell, but the row will still be imported.
 *   **Empty Lines**: Any blank lines in your CSV file will be silently ignored.
 
+### What You Should See After Import
+
+When you successfully import a CSV:
+
+1. **Valid Rows Imported**: All valid rows will appear in the form with proper data conversion applied
+2. **Error Notification**: If any rows had errors, you'll see a red notification listing the specific issues
+3. **Visual Validation Indicators**: 
+   - **Red underlines**: Invalid addresses or other format errors
+   - **Yellow warnings**: Missing or unrecognized project names
+   - **Dropdown resets**: Unrecognized chain names will show "Select a chain"
+4. **Data Conversion**: You'll see automatic conversions like:
+   - Chain IDs converted to proper names (e.g., "10" → "Optimism")
+   - Boolean values standardized (e.g., "1", "yes" → "Yes")
+
+### Common Error Messages
+
+*   `"Row X has Y cells, but header has Z. Please check for extra or missing commas."`
+*   `"Error on data row X: Unterminated quote in CSV line."`
+*   `"Invalid project ID: 'project-name'. Project not found."`
+*   `"Column 'column-name' was not recognized and will be ignored."`
+
 By providing detailed feedback on errors and warnings, the tool allows you to fix any issues without having to re-upload the entire file.
 
 ## Available Fields

@@ -145,6 +145,99 @@ const suggestSimilarProjects = (searchValue: string, projectList: ProjectData[])
   return similarProjects.slice(0, 3);
 };
 
+// Export function to get smart suggestions for any value
+export const getSmartProjectSuggestions = (value: string, projectList: ProjectData[]): string[] => {
+  if (!value || !projectList.length) return [];
+  
+  const normalizedValue = value.toLowerCase().trim();
+  const suggestions: { project: string; score: number }[] = [];
+  
+  projectList.forEach(project => {
+    if (!project.owner_project) return;
+    
+    const projectName = project.owner_project.toLowerCase();
+    const displayName = project.display_name?.toLowerCase() || '';
+    
+    let score = 0;
+    
+    // Exact match (highest priority)
+    if (projectName === normalizedValue || displayName === normalizedValue) {
+      score = 100;
+    }
+    // Contains match with good length ratio
+    else if (projectName.includes(normalizedValue) || normalizedValue.includes(projectName)) {
+      const lengthRatio = Math.min(projectName.length, normalizedValue.length) / 
+                         Math.max(projectName.length, normalizedValue.length);
+      if (lengthRatio > 0.5) { // More lenient for typos
+        score = 80 + (lengthRatio * 20);
+      }
+    }
+    // Similar display name match
+    else if (displayName && (displayName.includes(normalizedValue) || normalizedValue.includes(displayName))) {
+      const lengthRatio = Math.min(displayName.length, normalizedValue.length) / 
+                         Math.max(displayName.length, normalizedValue.length);
+      if (lengthRatio > 0.5) {
+        score = 70 + (lengthRatio * 20);
+      }
+    }
+    // Levenshtein distance for close typos
+    else {
+      const levenshteinDistance = (str1: string, str2: string): number => {
+        const matrix = [];
+        for (let i = 0; i <= str2.length; i++) {
+          matrix[i] = [i];
+        }
+        for (let j = 0; j <= str1.length; j++) {
+          matrix[0][j] = j;
+        }
+        for (let i = 1; i <= str2.length; i++) {
+          for (let j = 1; j <= str1.length; j++) {
+            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+              matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+              matrix[i][j] = Math.min(
+                matrix[i - 1][j - 1] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j] + 1
+              );
+            }
+          }
+        }
+        return matrix[str2.length][str1.length];
+      };
+      
+      const distance = levenshteinDistance(normalizedValue, projectName);
+      const maxLength = Math.max(normalizedValue.length, projectName.length);
+      const similarity = 1 - (distance / maxLength);
+      
+      if (similarity > 0.6) { // 60% similarity threshold
+        score = similarity * 80;
+      }
+      
+      // Also check display name
+      if (displayName) {
+        const displayDistance = levenshteinDistance(normalizedValue, displayName);
+        const displayMaxLength = Math.max(normalizedValue.length, displayName.length);
+        const displaySimilarity = 1 - (displayDistance / displayMaxLength);
+        
+        if (displaySimilarity > 0.6) {
+          score = Math.max(score, displaySimilarity * 70);
+        }
+      }
+    }
+    
+    if (score > 40) { // Lower threshold to catch more typos
+      suggestions.push({ project: project.owner_project, score });
+    }
+  });
+  
+  // Sort by score and return top 5 suggestions
+  return suggestions
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(s => s.project);
+};
+
 export const validateProjectField = async (field: string, value: string, isForCorrection: boolean = false): Promise<ValidationWarning[]> => {
   if (!value) return [];
 
@@ -154,11 +247,22 @@ export const validateProjectField = async (field: string, value: string, isForCo
   if (isForCorrection && field === 'owner_project') {
     const validProjectIds = projects.map(p => p.owner_project);
     if (!validProjectIds.includes(value)) {
+      // Use the new smart suggestions function
+      const smartSuggestions = getSmartProjectSuggestions(value, projects);
       const suggestions = suggestSimilarProjects(value, projects);
-      if (suggestions.length > 0) {
+      
+      if (smartSuggestions.length > 0) {
+        const suggestionProjects = projects.filter(p => smartSuggestions.includes(p.owner_project));
         warnings.push({
-          message: `Invalid project ID: "${value}".`,
-          suggestions: suggestions.map(p => p.owner_project)
+          message: `Invalid project ID: "${value}". Did you mean one of these projects?`,
+          suggestions: smartSuggestions,
+          similarProjects: suggestionProjects.map(p => p.display_name || p.owner_project)
+        });
+      } else if (suggestions.length > 0) {
+        warnings.push({
+          message: `Invalid project ID: "${value}". Did you mean one of these projects?`,
+          suggestions: suggestions.map(p => p.owner_project),
+          similarProjects: suggestions.map(p => p.display_name)
         });
       } else {
         warnings.push({
@@ -172,7 +276,8 @@ export const validateProjectField = async (field: string, value: string, isForCo
     if (similarProjects.length > 0) {
       const projectNames = similarProjects.map(p => `"${p.display_name}"`).join(', ');
       warnings.push({
-        message: `This ${field} is very similar to existing entries in ${projectNames}.`
+        message: `This ${field} is very similar to existing entries in ${projectNames}.`,
+        similarProjects: similarProjects.map(p => p.display_name)
       });
     }
   }

@@ -6,3 +6,4 @@ chains
 2_label_pool
 .DS_Store
 .vscode
+tsconfig.tsbuildinfo

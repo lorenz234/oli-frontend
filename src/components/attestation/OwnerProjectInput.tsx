@@ -1,13 +1,9 @@
 // components/attestation/OwnerProjectInput.tsx
 import React, { memo } from 'react';
-import { ValidationWarning } from '../../types/attestation';
-import HoverWarning from './HoverWarning';
 
 interface OwnerProjectInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  warnings: ValidationWarning[] | undefined;
-  onSuggestionClick: (suggestion: string) => void;
   validProjects: string[];
   isLoadingProjects: boolean;
   error?: string;
@@ -17,8 +13,6 @@ interface OwnerProjectInputProps {
 const OwnerProjectInput = memo<OwnerProjectInputProps>(({
   value,
   onChange,
-  warnings,
-  onSuggestionClick,
   validProjects,
   isLoadingProjects,
   error,
@@ -28,31 +22,29 @@ const OwnerProjectInput = memo<OwnerProjectInputProps>(({
 
   return (
     <div className="relative w-full">
-      <HoverWarning warnings={warnings || []} onSuggestionClick={onSuggestionClick}>
-        <div className="relative">
-          <input
-            type="text"
-            value={value}
-            onChange={onChange}
-            className={baseInputClasses}
-            list="valid-projects"
-          />
-          {isLoadingProjects ? (
-            <div className="absolute right-8 top-1/2 -translate-y-1/2">
-              <div className="animate-spin h-4 w-4 border-2 border-indigo-500 rounded-full border-t-transparent" />
-            </div>
-          ) : (
-            hasExactMatch && (
-              <div className="absolute right-8 top-1/2 -translate-y-1/2 text-green-500">✓</div>
-            )
-          )}
-          <datalist id="valid-projects">
-            {validProjects.map(project => (
-              <option key={project} value={project} />
-            ))}
-          </datalist>
-        </div>
-      </HoverWarning>
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={onChange}
+          className={baseInputClasses}
+          list="valid-projects"
+        />
+        {isLoadingProjects ? (
+          <div className="absolute right-8 top-1/2 -translate-y-1/2">
+            <div className="animate-spin h-4 w-4 border-2 border-indigo-500 rounded-full border-t-transparent" />
+          </div>
+        ) : (
+          hasExactMatch && (
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 text-green-500">✓</div>
+          )
+        )}
+        <datalist id="valid-projects">
+          {validProjects.map(project => (
+            <option key={project} value={project} />
+          ))}
+        </datalist>
+      </div>
       
       {error && <div className="absolute inset-x-0 bottom-0 h-0.5 bg-red-500" />}
     </div>

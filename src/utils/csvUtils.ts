@@ -57,24 +57,50 @@ const mapHeaderToField = (header: string): string | null => {
 };
 
 const convertChainId = (value: string): string => {
+    if (!value || !value.trim()) return value;
+    
     const normalizedValue = value.trim().toLowerCase();
+    
+    // If it's already in correct CAIP-2 format and valid, return it properly cased
     if (/^eip155:\d+$/.test(normalizedValue)) {
         const chain = CHAINS.find(c => c.caip2.toLowerCase() === normalizedValue);
+        if (chain) return chain.caip2; // Return the properly cased version
+        // If format is correct but chain not found, return original to trigger validation error
+        return value;
+    }
+    
+    // Check if it's a numeric chain ID (e.g., "1", "10", "137")
+    const numericMatch = normalizedValue.match(/^\d+$/);
+    if (numericMatch) {
+        const chainId = `eip155:${numericMatch[0]}`;
+        const chain = CHAINS.find(c => c.caip2 === chainId);
         if (chain) return chain.caip2;
     }
-    const chainById = CHAINS.find(c => c.id.toString() === normalizedValue);
+    
+    // Try to find by chain ID (the part after "eip155:")
+    const chainById = CHAINS.find(c => c.id.toLowerCase() === normalizedValue);
     if (chainById) return chainById.caip2;
+    
+    // Try to find by chain name (case insensitive)
     const chainByName = CHAINS.find(c => c.name.toLowerCase() === normalizedValue);
     if (chainByName) return chainByName.caip2;
+    
+    // Try to find by short name
+    const chainByShortName = CHAINS.find(c => c.shortName.toLowerCase() === normalizedValue);
+    if (chainByShortName) return chainByShortName.caip2;
 
+    // Check common aliases - only include aliases for chains that actually exist
     const aliases: { [key: string]: string } = {
         'mainnet': 'eip155:1',
         'ethereum': 'eip155:1',
+        'eth': 'eip155:1',
         'optimism': 'eip155:10',
+        'op': 'eip155:10',
         'matic': 'eip155:137',
         'polygon': 'eip155:137',
         'base': 'eip155:8453',
         'arbitrum': 'eip155:42161',
+        'arb': 'eip155:42161',
         'arbitrumone': 'eip155:42161',
         'arbitrumnova': 'eip155:42170',
         'celo': 'eip155:42220',
@@ -86,10 +112,18 @@ const convertChainId = (value: string): string => {
         'aurora': 'eip155:1313161554',
         'zircuit': 'eip155:48900'
     };
-    if (aliases[normalizedValue]) return aliases[normalizedValue];
+    
+    // Check aliases
+    if (aliases[normalizedValue]) {
+        return aliases[normalizedValue];
+    }
 
-    return value;
+    // If no conversion found, return empty string so validation shows "required" error
+    return '';
 };
+
+// Chain validation is now handled directly in BulkAttestationForm.tsx
+// using the validateChain function from validation.ts
 
 interface ParsedLine {
     values: string[];
@@ -147,23 +181,25 @@ interface ParseResult {
     columns: ColumnDefinition[];
     warnings: { [key: string]: ValidationWarning[] };
     errors: string[];
+    conversions: { [key: string]: { original: string; converted: string; field: string } };
 }
 
 export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Promise<ParseResult> => {
     const lines = csvText.split('\n').map(line => line.trim());
     const errors: string[] = [];
     const warnings: { [key: string]: ValidationWarning[] } = {};
+    const conversions: { [key: string]: { original: string; converted: string; field: string } } = {};
 
     if (lines.length < 2 || lines.slice(1).every(line => !line)) {
         errors.push('CSV file must contain a header and at least one data row.');
-        return { rows: [], columns: [], warnings, errors };
+        return { rows: [], columns: [], warnings, errors, conversions };
     }
 
     const headerLine = lines[0];
     const headerParseResult = parseCsvLine(headerLine);
     if (headerParseResult.error) {
         errors.push(`Error in header row: ${headerParseResult.error}`);
-        return { rows: [], columns: [], warnings, errors };
+        return { rows: [], columns: [], warnings, errors, conversions };
     }
     const headers = headerParseResult.values;
     const detectedColumns: ColumnDefinition[] = [];
@@ -197,7 +233,7 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
     });
 
     if (errors.length > 0) {
-        return { rows: [], columns: [], warnings, errors };
+        return { rows: [], columns: [], warnings, errors, conversions };
     }
     
     const requiredFields = formFields.filter(f => f.required);
@@ -205,7 +241,7 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
 
     if (missingRequired.length > 0) {
         errors.push(`Missing required columns: ${missingRequired.map(f => f.label).join(', ')}`);
-        return { rows: [], columns: detectedColumns, warnings, errors };
+        return { rows: [], columns: detectedColumns, warnings, errors, conversions };
     }
 
     const dataRows = lines.slice(1);
@@ -251,11 +287,27 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
                 const columnDef = detectedColumns.find(c => c.id === fieldId);
                 
                 if (fieldId === 'chain_id') {
+                    const originalValue = value;
                     value = convertChainId(value);
+                    
+                    // Track conversion if value changed
+                    if (originalValue !== value && originalValue.trim() !== '') {
+                        const conversionKey = `${rowIndex}-${fieldId}`;
+                        conversions[conversionKey] = {
+                            original: originalValue,
+                            converted: value || '(empty - invalid chain)',
+                            field: 'Chain ID'
+                        };
+                    }
                 }
                 
                 row[fieldId] = cleanValue(value, columnDef);
                 
+                // Chain validation is now handled by the standard validation in BulkAttestationForm
+                // validateChainValue is kept for potential future use but not called here
+                // to avoid duplicate validation
+                
+                // Validate project fields
                 const fieldWarnings = await validateProjectField(fieldId, row[fieldId], true);
                 if (fieldWarnings.length > 0) {
                     const key = `${rowIndex}-${fieldId}`;
@@ -268,8 +320,8 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
     }
 
     if (errors.length > 0 && newRows.length === 0) {
-        return { rows: [], columns: detectedColumns, warnings, errors };
+        return { rows: [], columns: detectedColumns, warnings, errors, conversions };
     }
 
-    return { rows: newRows, columns: detectedColumns, warnings, errors };
+    return { rows: newRows, columns: detectedColumns, warnings, errors, conversions };
 };

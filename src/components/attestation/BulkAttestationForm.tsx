@@ -4,6 +4,7 @@ import { NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
 import Notification from './Notification';
 import BulkConfirmationModal from './BulkConfirmationModal';
 import BulkFieldSelector from './BulkFieldSelector';
+import ValidationSummary from './ValidationSummary';
 import { Trash2, Plus, Upload, Download, Save, X } from 'lucide-react';
 
 
@@ -91,6 +92,8 @@ const BulkAttestationForm: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [warnings, setWarnings] = useState<{ [key: string]: ValidationWarning[] }>({});
+  const [showValidationSummary, setShowValidationSummary] = useState(false);
+  const [isValidationMode, setIsValidationMode] = useState(false);
   const { validateFieldMemo } = useValidationMemo();
 
   // Show notification function
@@ -218,6 +221,7 @@ const BulkAttestationForm: React.FC = () => {
   // Add a new empty row
   const addRow = () => {
     setRows([...rows, { ...EMPTY_ROW }]);
+    // Keep validation summary open if it was open
   };
 
   // Delete a row by index
@@ -225,9 +229,63 @@ const BulkAttestationForm: React.FC = () => {
     if (rows.length === 1) {
       // Keep at least one row, just clear it
       setRows([{ ...EMPTY_ROW }]);
+      // Clear all errors and warnings for the cleared row
+      const newErrors = { ...errors };
+      const newWarnings = { ...warnings };
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith('0-')) {
+          delete newErrors[key];
+        }
+      });
+      Object.keys(newWarnings).forEach(key => {
+        if (key.startsWith('0-')) {
+          delete newWarnings[key];
+        }
+      });
+      setErrors(newErrors);
+      setWarnings(newWarnings);
     } else {
+      // Remove the row
       setRows(rows.filter((_, i) => i !== index));
+      
+      // Update error and warning indices
+      const newErrors: { [key: string]: string } = {};
+      const newWarnings: { [key: string]: ValidationWarning[] } = {};
+      
+      Object.entries(errors).forEach(([key, value]) => {
+        const [rowIndexStr, field] = key.split('-');
+        const rowIndex = parseInt(rowIndexStr);
+        
+        if (rowIndex < index) {
+          // Keep errors for rows before the deleted row
+          newErrors[key] = value;
+        } else if (rowIndex > index) {
+          // Shift down errors for rows after the deleted row
+          const newKey = `${rowIndex - 1}-${field}`;
+          newErrors[newKey] = value;
+        }
+        // Skip errors for the deleted row (rowIndex === index)
+      });
+      
+      Object.entries(warnings).forEach(([key, value]) => {
+        const [rowIndexStr, field] = key.split('-');
+        const rowIndex = parseInt(rowIndexStr);
+        
+        if (rowIndex < index) {
+          // Keep warnings for rows before the deleted row
+          newWarnings[key] = value;
+        } else if (rowIndex > index) {
+          // Shift down warnings for rows after the deleted row
+          const newKey = `${rowIndex - 1}-${field}`;
+          newWarnings[newKey] = value;
+        }
+        // Skip warnings for the deleted row (rowIndex === index)
+      });
+      
+      setErrors(newErrors);
+      setWarnings(newWarnings);
     }
+    // Keep validation summary open if it was open
   };
 
   // Update a specific field in a row
@@ -248,28 +306,21 @@ const BulkAttestationForm: React.FC = () => {
     if (column) {
       if (column.required && !value) {
         newErrors[errorKey] = `${column.name} is required`;
-      } else if (value && column.validator) {
+      } else if (column.validator) {
         const validationError = column.validator(value);
         if (validationError) {
           newErrors[errorKey] = validationError;
         }
       }
       
-      if (field === 'owner_project' && value) {
-        if (validProjects.length > 0 && !validProjects.includes(value)) {
-          const projectWarnings = await validateFieldMemo(field, value);
-          if (projectWarnings.length > 0) {
-            newWarnings[warningKey] = projectWarnings;
-          } else {
-            newErrors[errorKey] = `Unknown project: "${value}"`;
-          }
-        }
-      }
+      // Note: owner_project warnings are now handled in validateRows() for the summary
     }
     
     setErrors(newErrors);
     setWarnings(newWarnings);
-  }, [rows, errors, warnings, activeColumns, validProjects]);
+    
+    // Keep validation summary open - it will update dynamically
+  }, [rows, errors, warnings, activeColumns]);
 
   const handleSuggestionSelection = (rowIndex: number, field: string, suggestion: string): void => {
     updateRow(rowIndex, field, suggestion);
@@ -279,38 +330,65 @@ const BulkAttestationForm: React.FC = () => {
     setWarnings(newWarnings);
   };
 
+  const handleCloseValidationSummary = (): void => {
+    setShowValidationSummary(false);
+  };
+
+  const handleNavigateToField = (rowIndex: number, field: string): void => {
+    // Find the table row element and scroll to it
+    const tableRow = document.querySelector(`[data-row-index="${rowIndex}"]`);
+    if (tableRow) {
+      tableRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Add a temporary highlight effect
+      tableRow.classList.add('bg-yellow-100', 'border-yellow-300');
+      setTimeout(() => {
+        tableRow.classList.remove('bg-yellow-100', 'border-yellow-300');
+      }, 2000);
+      
+      // Focus on the specific field if possible
+      const fieldInput = tableRow.querySelector(`[data-field="${field}"] input`);
+      if (fieldInput) {
+        (fieldInput as HTMLElement).focus();
+      }
+    }
+  };
+
   // Validate all rows before submission
-  const validateRows = () => {
+  const validateRows = async () => {
     const newErrors: { [key: string]: string } = {};
+    const newWarnings: { [key: string]: ValidationWarning[] } = {};
     let isValid = true;
 
-    rows.forEach((row, index) => {
+    for (const [rowIndex, row] of rows.entries()) {
       // Skip empty rows
       if (Object.values(row).every(value => !value) && rows.length > 1) {
-        return;
+        continue;
       }
 
       // Check each column
-      activeColumns.forEach(column => {
+      for (const column of activeColumns) {
         const value = row[column.id];
+        const errorKey = `${rowIndex}-${column.id}`;
+        const warningKey = `${rowIndex}-${column.id}`;
 
         // Check required fields
         if (column.required && !value) {
-          newErrors[`${index}-${column.id}`] = `${column.name} is required`;
+          newErrors[errorKey] = `${column.name} is required`;
           isValid = false;
-          return;
+          continue;
         }
 
         // Skip validation if field is empty and not required
         if (!value && !column.required) {
-          return;
+          continue;
         }
 
         // Run field-specific validation
         if (column.validator) {
           const validationError = column.validator(value);
           if (validationError) {
-            newErrors[`${index}-${column.id}`] = validationError;
+            newErrors[errorKey] = validationError;
             isValid = false;
           }
         }
@@ -318,14 +396,21 @@ const BulkAttestationForm: React.FC = () => {
         // Special validation for owner_project
         if (column.id === 'owner_project' && value && validProjects.length > 0) {
           if (!validProjects.includes(value)) {
-            newErrors[`${index}-${column.id}`] = `Unknown project: "${value}"`;
+            // Get warnings for potential typos
+            const projectWarnings = await validateFieldMemo(column.id, value);
+            if (projectWarnings.length > 0) {
+              newWarnings[warningKey] = projectWarnings;
+            } else {
+              newErrors[errorKey] = `Unknown project: "${value}"`;
+            }
             isValid = false;
           }
         }
-      });
-    });
+      }
+    }
 
     setErrors(newErrors);
+    setWarnings(newWarnings);
     return isValid;
   };
 
@@ -359,11 +444,23 @@ const BulkAttestationForm: React.FC = () => {
   };
 
   // Handle submission request
-  const handleSubmissionRequest = (e: React.FormEvent<HTMLButtonElement>): void => {
+  const handleSubmissionRequest = async (e: React.FormEvent<HTMLButtonElement>): Promise<void> => {
     e.preventDefault();
 
-    if (!validateRows()) {
-      return;
+    const isValid = await validateRows();
+    
+    // Check if there are any errors or warnings (excluding conversions)
+    const hasErrors = Object.keys(errors).length > 0;
+    const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+      warningList.some(w => !w.isConversion)
+    );
+    
+    // Always show validation summary to provide feedback
+    setIsValidationMode(true);
+    setShowValidationSummary(true);
+    
+    if (!isValid || hasErrors || hasRealWarnings) {
+      return; // Stop here if there are issues
     }
 
     // Filter out empty rows and dummy rows
@@ -496,15 +593,35 @@ const BulkAttestationForm: React.FC = () => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const csvText = event.target?.result as string;
-      const { rows: newRows, columns: newColumns, warnings: newWarnings, errors: parseErrors } = await parseAndCleanCsv(csvText, EMPTY_ROW);
+      const { rows: newRows, columns: newColumns, warnings: newWarnings, errors: parseErrors, conversions } = await parseAndCleanCsv(csvText, EMPTY_ROW);
 
       setRows(newRows);
-      setWarnings(newWarnings);
+      
+      // Add conversions as special warnings
+      const allWarnings = { ...newWarnings };
+      Object.entries(conversions).forEach(([key, conversion]) => {
+        allWarnings[key] = allWarnings[key] || [];
+        allWarnings[key].push({
+          message: `Chain ID converted: "${conversion.original}" → ${conversion.converted}`,
+          isConversion: true
+        });
+      });
+      
+      setWarnings(allWarnings);
+
+      // Show validation summary immediately after import to display warnings and conversions
+      setIsValidationMode(false);
+      setShowValidationSummary(true);
 
       if (parseErrors.length > 0) {
         showNotification(`CSV imported with errors: ${parseErrors.join(', ')}`, 'error');
       } else {
-        showNotification('CSV file imported successfully. Please review any warnings.', 'success');
+        const conversionCount = Object.keys(conversions).length;
+        if (conversionCount > 0) {
+          showNotification(`CSV imported successfully with ${conversionCount} chain ID conversion${conversionCount !== 1 ? 's' : ''}. Please review the changes below.`, 'success');
+        } else {
+          showNotification('CSV file imported successfully. Please review any warnings.', 'success');
+        }
       }
 
       if (newRows.length > 50) {
@@ -654,7 +771,6 @@ const BulkAttestationForm: React.FC = () => {
   const renderTableCell = (column: ColumnDefinition, row: RowData, rowIndex: number) => {
     const value = row[column.id] || '';
     const error = errors[`${rowIndex}-${column.id}`];
-    const warning = warnings[`${rowIndex}-${column.id}`];
     const baseInputClasses = `block w-full px-3 py-2 text-sm border-0 placeholder-gray-400 focus:ring-0 ${
       error ? 'text-red-900' : 'text-gray-900'
     }`;
@@ -665,7 +781,7 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for boolean fields (radio or is_* fields)
     if (field?.type === 'radio' || column.id.startsWith('is_')) {
       return (
-        <td key={column.id} className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
           <select
             value={value}
             onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
@@ -683,7 +799,7 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for date fields
     if (field?.type === 'date') {
       return (
-        <td key={column.id} className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
           <input
             type="date"
             value={value}
@@ -698,7 +814,7 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for number fields
     if (field?.type === 'number') {
       return (
-        <td key={column.id} className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
           <input
             type="number"
             value={value}
@@ -714,7 +830,7 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for multiselect fields
     if (field?.type === 'multiselect' && field.options) {
       return (
-        <td key={column.id} className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
           <select
             value={value}
             onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
@@ -734,10 +850,13 @@ const BulkAttestationForm: React.FC = () => {
 
     // Special handling for chain_id
     if (column.id === 'chain_id') {
+      const isValidChain = value && CHAIN_OPTIONS.some(option => option.value === value);
+      const selectValue = isValidChain ? value : '';
+      
       return (
-        <td key={column.id} className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
           <select
-            value={CHAIN_OPTIONS.some(option => option.value === value) ? value : ''}
+            value={selectValue}
             onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
             className={baseInputClasses}
           >
@@ -748,6 +867,8 @@ const BulkAttestationForm: React.FC = () => {
               </option>
             ))}
           </select>
+          {/* Show invalid chain value if not in options */}
+
           {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
         </td>
       );
@@ -756,12 +877,10 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for owner_project
     if (column.id === 'owner_project') {
       return (
-        <td key={column.id} className="relative p-0">
+        <td key={column.id} className="relative p-0" data-field={column.id}>
           <OwnerProjectInput
             value={value}
             onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            warnings={warning}
-            onSuggestionClick={(suggestion) => handleSuggestionSelection(rowIndex, 'owner_project', suggestion)}
             validProjects={validProjects}
             isLoadingProjects={isLoadingProjects}
             error={error}
@@ -774,7 +893,7 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for usage_category
     if (column.id === 'usage_category') {
       return (
-        <td key={column.id} className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
           <div className="relative">
             <input
               type="text"
@@ -799,7 +918,7 @@ const BulkAttestationForm: React.FC = () => {
 
     // Default input field for other columns
     return (
-      <td key={column.id} className="relative">
+      <td key={column.id} className="relative" data-field={column.id}>
         <input
           type="text"
           value={value}
@@ -888,6 +1007,20 @@ const BulkAttestationForm: React.FC = () => {
           </div>
         </div>
 
+        {/* Validation Summary */}
+        {showValidationSummary && (
+          <ValidationSummary
+            errors={errors}
+            warnings={warnings}
+            rows={rows}
+            activeColumns={activeColumns}
+            onSuggestionClick={handleSuggestionSelection}
+            onClose={handleCloseValidationSummary}
+            onNavigateToField={handleNavigateToField}
+            isValidationMode={isValidationMode}
+          />
+        )}
+
         <div className="border-t border-gray-200">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -923,7 +1056,11 @@ const BulkAttestationForm: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {rows.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={rowIndex} 
+                    className="hover:bg-gray-50 transition-colors"
+                    data-row-index={rowIndex}
+                  >
                     {activeColumns.map((column) => renderTableCell(column, row, rowIndex))}
                     <td className="w-10 p-0">
                       <button
@@ -947,7 +1084,17 @@ const BulkAttestationForm: React.FC = () => {
               type="button"
               onClick={handleSubmissionRequest}
               disabled={isSubmitting || rows.length === 0}
-              className="flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
+              className={(() => {
+                const hasErrors = Object.keys(errors).length > 0;
+                const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                  warningList.some(w => !w.isConversion)
+                );
+                const hasIssues = hasErrors || hasRealWarnings;
+                
+                return hasIssues 
+                  ? "flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg hover:from-amber-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
+                  : "flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]";
+              })()}
             >
               {isSubmitting ? (
                 <>
@@ -958,10 +1105,27 @@ const BulkAttestationForm: React.FC = () => {
                   Submitting...
                 </>
               ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Create Bulk Attestations
-                </>
+                (() => {
+                  const hasErrors = Object.keys(errors).length > 0;
+                  const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                    warningList.some(w => !w.isConversion)
+                  );
+                  const hasIssues = hasErrors || hasRealWarnings;
+                  
+                  return hasIssues ? (
+                    <>
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Validate Values
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Create Bulk Attestations
+                    </>
+                  );
+                })()
               )}
             </button>
           </div>

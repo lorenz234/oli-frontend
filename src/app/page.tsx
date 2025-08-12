@@ -424,10 +424,11 @@ const HomePage: FC = () => {
           {projects.map((project, index) => {
             // Map project URLs to images - add more mappings as needed
             const projectImages: { [key: string]: string } = {
-              'https://labels.growthepie.xyz/': '/project-images/growthepie-labels.png',
-              'https://www.growthepie.xyz/applications': '/project-images/growthepie-applications.png',
+              'https://labels.growthepie.com/': '/project-images/growthepie-labels.png',
+              'https://www.growthepie.com/applications/': '/project-images/growthepie-applications.png',
               'https://agx.app/': '/project-images/agx.png',
               'https://repo.sourcify.dev/': '/project-images/sourcify.png',
+              'https://app.enscribe.xyz/': '/project-images/enscribe-explorer.png',
             };
                         
             // Check if we have an image for this project
@@ -534,7 +535,7 @@ const HomePage: FC = () => {
           <div className="grid grid-cols-2 gap-8 md:grid-cols-2">
             <div className="col-span-1 flex justify-center">
               <Image
-                src="/eth-foundation-logo.png"
+                src="/EF-ESP-logo.svg"
                 alt="Ethereum Foundation"
                 width={240}
                 height={120}

@@ -100,6 +100,14 @@ Contributions are welcome! Please check out our community calls and join the eco
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Products Using OLI
+
+- [Enscribe](https://app.enscribe.xyz/) - Tool to Assign ENS to contracts
+- [growthepie Labels](https://labels.growthepie.com/) - Label explorer and analytics platform
+- [growthepie Applications](https://www.growthepie.com/applications/) - L2 analytics platform
+- [AGX](https://agx.app/) - Blockchain analytics platform
+- [Sourcify](https://repo.sourcify.dev/) - Contract verification service
+
 ## Supporters
 
 - Ethereum Foundation

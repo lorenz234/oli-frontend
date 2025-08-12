@@ -50,9 +50,13 @@ export const validateChain = (value: string, validOptions?: {value: string}[]): 
 };
 
 export const validateCategory = (value: string): string | null => {
-  return !value || VALID_CATEGORY_IDS.includes(value) 
-    ? null 
-    : 'Invalid category';
+  if (!value) return null; // Empty is valid (optional field)
+  
+  if (VALID_CATEGORY_IDS.includes(value)) {
+    return null; // Valid category
+  }
+  
+  return `Invalid category: "${value}". Please select from available categories.`;
 };
 
 export const validateBoolean = (value: string): string | null => {

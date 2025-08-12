@@ -18,7 +18,8 @@ import { NotificationType, ConfirmationData, RowData, ColumnDefinition, Attestat
 import { parseAndCleanCsv } from '../../utils/csvUtils';
 import { formFields } from '../../constants/formFields';
 
-import useValidationMemo from '../../hooks/useValidationMemo';
+import { validateProjectField } from '../../utils/projectValidation';
+import { validateCategoryField } from '../../utils/categoryValidation';
 import OwnerProjectInput from './OwnerProjectInput';
 import { CHAINS } from '../../constants/chains';
 
@@ -94,7 +95,6 @@ const BulkAttestationForm: React.FC = () => {
   const [warnings, setWarnings] = useState<{ [key: string]: ValidationWarning[] }>({});
   const [showValidationSummary, setShowValidationSummary] = useState(false);
   const [isValidationMode, setIsValidationMode] = useState(false);
-  const { validateFieldMemo } = useValidationMemo();
 
   // Show notification function
   const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
@@ -397,13 +397,37 @@ const BulkAttestationForm: React.FC = () => {
         if (column.id === 'owner_project' && value && validProjects.length > 0) {
           if (!validProjects.includes(value)) {
             // Get warnings for potential typos
-            const projectWarnings = await validateFieldMemo(column.id, value);
+            const projectWarnings = await validateProjectField(column.id, value, true);
             if (projectWarnings.length > 0) {
               newWarnings[warningKey] = projectWarnings;
             } else {
               newErrors[errorKey] = `Unknown project: "${value}"`;
             }
             isValid = false;
+          }
+        }
+
+        // Special validation for usage_category
+        if (column.id === 'usage_category' && value) {
+          const categoryWarnings = await validateCategoryField(column.id, value);
+          if (categoryWarnings.length > 0) {
+            // Separate conversions (warnings) from actual errors
+            const conversions = categoryWarnings.filter(w => w.isConversion);
+            const actualErrors = categoryWarnings.filter(w => !w.isConversion);
+            
+            // Add conversions as warnings
+            if (conversions.length > 0) {
+              newWarnings[warningKey] = conversions;
+            }
+            
+            // Add invalid categories as errors (but preserve suggestions for quick-fix)
+            if (actualErrors.length > 0) {
+              const errorMessage = actualErrors[0].message;
+              newErrors[errorKey] = errorMessage;
+              // Also add to warnings to preserve quick-fix suggestions in ValidationSummary
+              newWarnings[warningKey] = (newWarnings[warningKey] || []).concat(actualErrors);
+              isValid = false;
+            }
           }
         }
       }

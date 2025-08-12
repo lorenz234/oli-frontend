@@ -44,6 +44,45 @@ This is one of the most important fields, and the parser can handle a variety of
 
 The parser will automatically convert any of these formats into the standardized `eip155:` format.
 
+### `usage_category` Validation and Aliases
+
+The system includes comprehensive category validation with smart suggestions to help ensure your category values are correct:
+
+#### Supported Category Aliases
+
+The system automatically converts these common aliases:
+
+| Alias | Converts To | Category Name |
+|-------|-------------|---------------|
+| `defi` | `dex` | Decentralized Exchange |
+| `exchange` | `dex` | Decentralized Exchange |
+| `swap` | `dex` | Decentralized Exchange |
+| `nft` | `non_fungible_tokens` | Non-Fungible Tokens |
+| `token` | `fungible_tokens` | Fungible Tokens |
+| `erc20` | `fungible_tokens` | Fungible Tokens |
+| `stable` | `stablecoin` | Stablecoin |
+| `game` | `gaming` | Gaming |
+| `yield` | `yield_vaults` | Yield Vaults |
+| `farm` | `yield_vaults` | Yield Vaults |
+| `loan` | `lending` | Lending |
+| `stake` | `staking` | Staking |
+| `bridge` | `bridge` | Bridge |
+| `oracle` | `oracle` | Oracle |
+| `payment` | `payments` | Payments |
+| `bot` | `mev` | MEV |
+| `arbitrage` | `mev` | MEV |
+| `marketplace` | `nft_marketplace` | NFT Marketplace |
+| `gambling` | `gambling` | Gambling |
+| `bet` | `gambling` | Gambling |
+| `other` | `other` | Others |
+
+#### Category Validation Features
+
+- **Smart Suggestions**: The system provides intelligent suggestions for typos or incorrect categories
+- **Automatic Conversion**: Common aliases are automatically converted during import
+- **Visual Feedback**: Clear indicators show validation status and suggestions
+- **Quick-fix Options**: One-click buttons to apply suggested corrections
+
 ### Boolean Values (Yes/No)
 
 For fields that require a `true` or `false` value (e.g., `is_contract`), you can use any of the following:
@@ -69,9 +108,19 @@ Any leading or trailing whitespace in your data will be automatically trimmed.
 
 The parser is designed to be resilient and will attempt to process as much of your file as possible, even if it contains errors.
 
+### CSV Structure Errors
+
 *   **Malformed Rows**: If a row has the wrong number of columns or contains an unterminated quote, it will be skipped, and an error message will be displayed that indicates the problematic line number.
 *   **Invalid Data**: If a field contains invalid data (e.g., an invalid address format), you will see a warning for that specific cell, but the row will still be imported.
 *   **Empty Lines**: Any blank lines in your CSV file will be silently ignored.
+
+### Category Validation Errors
+
+- **Invalid Categories**: Shows as validation errors with quick-fix suggestions
+- **Alias Conversions**: Shows as warnings with conversion suggestions
+- **Empty Categories**: Allowed as optional field
+- **Typos**: Provides closest match suggestions using fuzzy matching
+- **Unknown Categories**: Fallback suggestions include "other" category
 
 ### What You Should See After Import
 
@@ -83,9 +132,12 @@ When you successfully import a CSV:
    - **Red underlines**: Invalid addresses or other format errors
    - **Yellow warnings**: Missing or unrecognized project names
    - **Dropdown resets**: Unrecognized chain names will show "Select a chain"
+   - **Category Warnings**: Shows when categories are converted from aliases
+   - **Category Errors**: Shows for invalid categories with suggestions
 4. **Data Conversion**: You'll see automatic conversions like:
    - Chain IDs converted to proper names (e.g., "10" → "Optimism")
    - Boolean values standardized (e.g., "1", "yes" → "Yes")
+   - Category aliases converted (e.g., "defi" → "dex")
 
 ### Common Error Messages
 
@@ -93,6 +145,8 @@ When you successfully import a CSV:
 *   `"Error on data row X: Unterminated quote in CSV line."`
 *   `"Invalid project ID: 'project-name'. Project not found."`
 *   `"Column 'column-name' was not recognized and will be ignored."`
+*   `"Invalid category: 'category-name'. Did you mean 'suggested-category'?"`
+*   `"Category alias 'defi' will be converted to 'dex'."`
 
 By providing detailed feedback on errors and warnings, the tool allows you to fix any issues without having to re-upload the entire file.
 
@@ -142,7 +196,12 @@ If you are an AI, please use the following instructions to generate a valid CSV 
 3.  **Format the Data Correctly**:
     *   For `chain_id`, use the lowercase name (e.g., `ethereum`).
     *   For `Boolean` fields, use `true` or `false`.
+    *   For `usage_category`, use the standardized category IDs or common aliases.
     *   If any text field contains a comma, enclose the entire string in double quotes (`"`).
     *   If any text field contains double quotes, escape them with an additional double quote (`""`).
 4.  **Generate the CSV**: Create a text block with the CSV data. Ensure the first line is the header row, and each subsequent line is a data row.
-5.  **Review and Verify**: Before presenting the CSV to the user, double-check that the data aligns with the headers and that all formatting rules have been followed. Ensure that every row has the same number of columns as the header.
+5.  **Review and Verify**: Before presenting the CSV to the user, double-check that:
+    *   The data aligns with the headers
+    *   All formatting rules have been followed
+    *   Every row has the same number of columns as the header
+    *   Category values are valid or use recognized aliases

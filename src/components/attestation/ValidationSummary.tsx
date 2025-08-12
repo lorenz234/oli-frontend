@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ValidationWarning, ProjectData } from '../../types/attestation';
 import { fetchProjects, getSmartProjectSuggestions } from '../../utils/projectValidation';
+import { getSmartCategorySuggestions, getCategoryDisplayInfo } from '../../utils/categoryValidation';
 
 interface ValidationSummaryProps {
   errors: { [key: string]: string };
@@ -60,21 +61,41 @@ const ValidationSummary: React.FC<ValidationSummaryProps> = ({
   Object.entries(errors).forEach(([key, message]) => {
     const [rowIndex, field] = key.split('-');
     const fieldName = activeColumns.find(col => col.id === field)?.name || field;
+    
+    // Check if there are corresponding warnings with suggestions for this error
+    const correspondingWarnings = warnings[key] || [];
+    const suggestionsFromWarnings = correspondingWarnings.flatMap(w => w.suggestions || []);
+    const showAddProjectLink = correspondingWarnings.some(w => w.showAddProjectLink);
+    const similarProjects = correspondingWarnings.flatMap(w => w.similarProjects || []);
+    
     allIssues.push({
       type: 'error',
       rowIndex: parseInt(rowIndex),
       field,
       fieldName,
-      message
+      message,
+      suggestions: suggestionsFromWarnings.length > 0 ? suggestionsFromWarnings : undefined,
+      showAddProjectLink,
+      similarProjects: similarProjects.length > 0 ? similarProjects : undefined
     });
   });
 
-  // Process warnings (only show in import mode, not validation mode)
-  if (!isValidationMode) {
-    Object.entries(warnings).forEach(([key, warningList]) => {
-      const [rowIndex, field] = key.split('-');
-      const fieldName = activeColumns.find(col => col.id === field)?.name || field;
-      warningList.forEach(warning => {
+  // Process warnings
+  // In import mode: show all warnings
+  // In validation mode: only show warnings that have suggestions AND don't have corresponding errors
+  Object.entries(warnings).forEach(([key, warningList]) => {
+    const [rowIndex, field] = key.split('-');
+    const fieldName = activeColumns.find(col => col.id === field)?.name || field;
+    const hasCorrespondingError = errors[key] !== undefined;
+    
+    warningList.forEach(warning => {
+      // Show warnings if:
+      // - In import mode: show all warnings
+      // - In validation mode: show warnings with suggestions that don't have corresponding errors
+      const shouldShow = !isValidationMode || 
+        (!hasCorrespondingError && (warning.suggestions || warning.showAddProjectLink));
+      
+      if (shouldShow) {
         allIssues.push({
           type: warning.isConversion ? 'conversion' : 'warning',
           rowIndex: parseInt(rowIndex),
@@ -85,9 +106,9 @@ const ValidationSummary: React.FC<ValidationSummaryProps> = ({
           showAddProjectLink: warning.showAddProjectLink,
           similarProjects: warning.similarProjects
         });
-      });
+      }
     });
-  }
+  });
 
   const errorCount = allIssues.filter(issue => issue.type === 'error').length;
   const warningCount = allIssues.filter(issue => issue.type === 'warning').length;
@@ -331,6 +352,38 @@ const ValidationSummary: React.FC<ValidationSummaryProps> = ({
                             ))}
                           </div>
                         )}
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* Smart suggestions for usage_category */}
+                  {!issue.suggestions && issue.field === 'usage_category' && (() => {
+                    const row = rows[issue.rowIndex];
+                    const currentValue = row?.[issue.field] || '';
+                    const smartSuggestions = getSmartCategorySuggestions(currentValue);
+                    
+                    return smartSuggestions.length > 0 ? (
+                      <div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">Category Suggestions:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {smartSuggestions.map((suggestion, i) => {
+                            const categoryInfo = getCategoryDisplayInfo(suggestion);
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSuggestionClick(issue.rowIndex, issue.field, suggestion);
+                                }}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition-colors"
+                                title={categoryInfo?.description || suggestion}
+                              >
+                                🏷️ {categoryInfo?.name || suggestion}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     ) : null;
                   })()}

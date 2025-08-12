@@ -2,6 +2,7 @@ import { RowData, ColumnDefinition, ValidationWarning } from '../types/attestati
 import { CHAINS } from '../constants/chains';
 import { formFields } from '../constants/formFields';
 import { validateProjectField } from './projectValidation';
+import { validateCategoryField, convertCategoryAlias } from './categoryValidation';
 
 const levenshtein = (a: string, b: string): number => {
     const an = a.length;
@@ -299,6 +300,19 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
                             field: 'Chain ID'
                         };
                     }
+                } else if (fieldId === 'usage_category') {
+                    const originalValue = value;
+                    value = convertCategoryAlias(value);
+                    
+                    // Track conversion if value changed
+                    if (originalValue !== value && originalValue.trim() !== '') {
+                        const conversionKey = `${rowIndex}-${fieldId}`;
+                        conversions[conversionKey] = {
+                            original: originalValue,
+                            converted: value,
+                            field: 'Usage Category'
+                        };
+                    }
                 }
                 
                 row[fieldId] = cleanValue(value, columnDef);
@@ -308,11 +322,19 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
                 // to avoid duplicate validation
                 
                 // Validate project fields
-                const fieldWarnings = await validateProjectField(fieldId, row[fieldId], true);
-                if (fieldWarnings.length > 0) {
+                const projectWarnings = await validateProjectField(fieldId, row[fieldId], true);
+                if (projectWarnings.length > 0) {
                     const key = `${rowIndex}-${fieldId}`;
                     warnings[key] = warnings[key] || [];
-                    warnings[key].push(...fieldWarnings);
+                    warnings[key].push(...projectWarnings);
+                }
+                
+                // Validate category fields
+                const categoryWarnings = await validateCategoryField(fieldId, row[fieldId]);
+                if (categoryWarnings.length > 0) {
+                    const key = `${rowIndex}-${fieldId}`;
+                    warnings[key] = warnings[key] || [];
+                    warnings[key].push(...categoryWarnings);
                 }
             }
         }

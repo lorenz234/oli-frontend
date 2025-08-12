@@ -256,18 +256,21 @@ export const validateProjectField = async (field: string, value: string, isForCo
         warnings.push({
           message: `Invalid project ID: "${value}". Did you mean one of these projects?`,
           suggestions: smartSuggestions,
-          similarProjects: suggestionProjects.map(p => p.display_name || p.owner_project)
+          similarProjects: suggestionProjects.map(p => p.display_name || p.owner_project),
+          isError: true // Mark as error to show red line
         });
       } else if (suggestions.length > 0) {
         warnings.push({
           message: `Invalid project ID: "${value}". Did you mean one of these projects?`,
           suggestions: suggestions.map(p => p.owner_project),
-          similarProjects: suggestions.map(p => p.display_name)
+          similarProjects: suggestions.map(p => p.display_name),
+          isError: true // Mark as error to show red line
         });
       } else {
         warnings.push({
           message: `Invalid project ID: "${value}". Project not found.`,
-          showAddProjectLink: true
+          showAddProjectLink: true,
+          isError: true // Mark as error to show red line
         });
       }
     }
@@ -278,6 +281,7 @@ export const validateProjectField = async (field: string, value: string, isForCo
       warnings.push({
         message: `This ${field} is very similar to existing entries in ${projectNames}.`,
         similarProjects: similarProjects.map(p => p.display_name)
+        // This remains as a warning, not an error
       });
     }
   }

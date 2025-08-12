@@ -46,6 +46,7 @@ export interface ValidationWarning {
   showAddProjectLink?: boolean;
   similarProjects?: string[];
   isConversion?: boolean;
+  isError?: boolean;
 }
 
 export interface ProjectData {

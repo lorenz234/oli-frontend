@@ -399,11 +399,27 @@ const BulkAttestationForm: React.FC = () => {
             // Get warnings for potential typos
             const projectWarnings = await validateProjectField(column.id, value, true);
             if (projectWarnings.length > 0) {
-              newWarnings[warningKey] = projectWarnings;
+              // Separate actual errors from other warnings
+              const actualErrors = projectWarnings.filter(w => w.isError);
+              const otherWarnings = projectWarnings.filter(w => !w.isError);
+              
+              // Add other warnings (like similarity warnings)
+              if (otherWarnings.length > 0) {
+                newWarnings[warningKey] = (newWarnings[warningKey] || []).concat(otherWarnings);
+              }
+              
+              // Add project errors as errors (but preserve suggestions for quick-fix)
+              if (actualErrors.length > 0) {
+                const errorMessage = actualErrors[0].message;
+                newErrors[errorKey] = errorMessage;
+                // Also add to warnings to preserve quick-fix suggestions in ValidationSummary
+                newWarnings[warningKey] = (newWarnings[warningKey] || []).concat(actualErrors);
+                isValid = false;
+              }
             } else {
               newErrors[errorKey] = `Unknown project: "${value}"`;
+              isValid = false;
             }
-            isValid = false;
           }
         }
 
@@ -795,7 +811,7 @@ const BulkAttestationForm: React.FC = () => {
   const renderTableCell = (column: ColumnDefinition, row: RowData, rowIndex: number) => {
     const value = row[column.id] || '';
     const error = errors[`${rowIndex}-${column.id}`];
-    const baseInputClasses = `block w-full px-3 py-2 text-sm border-0 placeholder-gray-400 focus:ring-0 ${
+    const baseInputClasses = `block w-full px-3 py-2 text-sm border-0 placeholder-gray-400 focus:ring-0 focus:outline-none ${
       error ? 'text-red-900' : 'text-gray-900'
     }`;
 
@@ -806,16 +822,18 @@ const BulkAttestationForm: React.FC = () => {
     if (field?.type === 'radio' || column.id.startsWith('is_')) {
       return (
         <td key={column.id} className="relative" data-field={column.id}>
-          <select
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="">Select...</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          <div className="relative w-full">
+            <select
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            >
+              <option value="">Select...</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -824,13 +842,15 @@ const BulkAttestationForm: React.FC = () => {
     if (field?.type === 'date') {
       return (
         <td key={column.id} className="relative" data-field={column.id}>
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          />
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          <div className="relative w-full">
+            <input
+              type="date"
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            />
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -839,14 +859,16 @@ const BulkAttestationForm: React.FC = () => {
     if (field?.type === 'number') {
       return (
         <td key={column.id} className="relative" data-field={column.id}>
-          <input
-            type="number"
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-            step={column.id === 'erc20_decimals' ? '1' : 'any'}
-          />
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          <div className="relative w-full">
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+              step={column.id === 'erc20_decimals' ? '1' : 'any'}
+            />
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -855,19 +877,21 @@ const BulkAttestationForm: React.FC = () => {
     if (field?.type === 'multiselect' && field.options) {
       return (
         <td key={column.id} className="relative" data-field={column.id}>
-          <select
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="">Select...</option>
-            {field.options.map((option: { value: string | number; label: string }) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          <div className="relative w-full">
+            <select
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            >
+              <option value="">Select...</option>
+              {field.options.map((option: { value: string | number; label: string }) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -879,21 +903,23 @@ const BulkAttestationForm: React.FC = () => {
       
       return (
         <td key={column.id} className="relative" data-field={column.id}>
-          <select
-            value={selectValue}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="" disabled>Select a chain</option>
-            {CHAIN_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {/* Show invalid chain value if not in options */}
+          <div className="relative w-full">
+            <select
+              value={selectValue}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            >
+              <option value="" disabled>Select a chain</option>
+              {CHAIN_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {/* Show invalid chain value if not in options */}
 
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -901,7 +927,7 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for owner_project
     if (column.id === 'owner_project') {
       return (
-        <td key={column.id} className="relative p-0" data-field={column.id}>
+        <td key={column.id} className="relative" data-field={column.id}>
           <OwnerProjectInput
             value={value}
             onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
@@ -918,7 +944,7 @@ const BulkAttestationForm: React.FC = () => {
     if (column.id === 'usage_category') {
       return (
         <td key={column.id} className="relative" data-field={column.id}>
-          <div className="relative">
+          <div className="relative w-full">
             <input
               type="text"
               value={value}
@@ -929,13 +955,13 @@ const BulkAttestationForm: React.FC = () => {
             {value && VALID_CATEGORY_IDS.includes(value) && (
               <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">✓</div>
             )}
+            <datalist id="valid-categories">
+              {VALID_CATEGORY_IDS.map(categoryId => (
+                <option key={categoryId} value={categoryId} />
+              ))}
+            </datalist>
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
           </div>
-          <datalist id="valid-categories">
-            {VALID_CATEGORY_IDS.map(categoryId => (
-              <option key={categoryId} value={categoryId} />
-            ))}
-          </datalist>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
         </td>
       );
     }
@@ -943,15 +969,16 @@ const BulkAttestationForm: React.FC = () => {
     // Default input field for other columns
     return (
       <td key={column.id} className="relative" data-field={column.id}>
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-          className={baseInputClasses}
-          placeholder={`Enter ${column.name.toLowerCase()}`}
-        />
-        {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
-
+        <div className="relative w-full">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+            placeholder={`Enter ${column.name.toLowerCase()}`}
+          />
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </div>
       </td>
     );
   };

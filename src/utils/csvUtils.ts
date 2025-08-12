@@ -327,6 +327,12 @@ export const parseAndCleanCsv = async (csvText: string, emptyRow: RowData): Prom
                     const key = `${rowIndex}-${fieldId}`;
                     warnings[key] = warnings[key] || [];
                     warnings[key].push(...projectWarnings);
+                    
+                    // Add project errors to errors array for red line display
+                    const projectErrors = projectWarnings.filter(w => w.isError);
+                    if (projectErrors.length > 0) {
+                        errors.push(`Row ${rowIndex + 1}: ${projectErrors[0].message}`);
+                    }
                 }
                 
                 // Validate category fields

@@ -5,6 +5,7 @@ import { UnlabeledContract } from '@/types/unlabeledContracts';
 import { CHAINS } from '@/constants/chains';
 import { fetchAttestationsByContract, Attestation } from '@/services/attestationService';
 import AttestationList from './AttestationList';
+import { resolveEnsName, getEnscribeUrl, EnsState } from '@/utils/ens';
 
 // Cache for storing attestation results during the session
 const attestationCache: Record<string, Attestation[]> = {};
@@ -33,6 +34,13 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   const [attestations, setAttestations] = useState<Attestation[]>([]);
   const [showAttestationList, setShowAttestationList] = useState(false);
   const [hasBeenInView, setHasBeenInView] = useState(false);
+  const [ensState, setEnsState] = useState<EnsState>({
+    resolution: null,
+    loading: false,
+    error: null
+  });
+  const ensResolution = ensState.resolution;
+  const ensName = ensResolution?.name || null;
   
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -118,9 +126,9 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
   };
 
   // Get chain name formatted for display
-  const getFormattedChainName = (chain: string): string => {
+  const getFormattedChainName = useCallback((chain: string): string => {
     return chainMetadata?.name || chain.toUpperCase().replace('_', ' ');
-  };
+  }, [chainMetadata]);
 
   // Check for existing attestations
   const checkAttestations = useCallback(async (forceCheck: boolean = false) => {
@@ -198,6 +206,31 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
       }
     };
   }, [hasBeenInView, isCheckingAttestations, attestations.length, checkAttestations]);
+
+  useEffect(() => {
+    const fetchEnsName = async () => {
+      setEnsState(prev => ({ ...prev, loading: true, error: null }));
+      
+      try {
+        const chainName = getFormattedChainName(contract.chain).toLowerCase();
+        const resolution = await resolveEnsName(fullAddress, chainName);
+        setEnsState({
+          resolution,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        console.error('ENS resolution failed:', error);
+        setEnsState({
+          resolution: null,
+          loading: false,
+          error: error instanceof Error ? error.message : 'ENS resolution failed'
+        });
+      }
+    };
+
+    fetchEnsName();
+  }, [contract.chain, fullAddress, getFormattedChainName]);
 
   // Handle a selected attestation for editing/confirming
   const handleSelectAttestation = (attestation: ParsedAttestation) => {
@@ -286,6 +319,17 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-white font-serif italic">{getFormattedChainName(contract.chain)}</div>
+          {ensName && (
+            <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="4" fill="currentColor" fillOpacity="0.3"/>
+                <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Enscribed by Enscribe
+            </span>
+          )}
           <button
             onClick={() => checkAttestations(true)}
             disabled={isCheckingAttestations}
@@ -408,28 +452,100 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onSelect, onSelec
 
           {/* Address section with notary style */}
           <div className="font-mono mb-5 flex items-center">
-            <div className="text-gray-600 text-xs uppercase mr-2 font-serif">Contract Address:</div>
             <div className="bg-white border border-gray-200 rounded px-2 py-1 text-gray-800 flex-grow flex items-center justify-between">
-              <span className="select-all">{fullAddress}</span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(fullAddress);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="ml-2 text-gray-500 hover:text-gray-700 transition-colors"
-                title="Copy address"
-              >
-                {copied ? (
-                  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
+              <div className="flex items-center">
+                <a
+                  href={getEnscribeUrl(fullAddress, contract.chain, ensName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="select-all"
+                >
+                  {ensName || fullAddress}
+                </a>
+                {ensState.loading && (
+                  <div className="ml-2 w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center animate-pulse">
+                    <div className="absolute inset-0 w-4 h-4 rounded-full border-2 border-transparent border-t-white border-r-white animate-spin"></div>
+                  </div>
                 )}
-              </button>
+                {ensResolution?.method === 'primary' && (
+                  <div className="ml-2" title="Reverse Resolved ENS - Verified by owner">
+                    <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                {ensResolution?.method === 'l2' && (
+                  <div className="ml-2" title="Chain-specific ENS resolution">
+                    <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                {ensResolution?.method === 'subgraph' && (
+                  <div className="ml-2" title="Forward Resolved ENS - Less secure">
+                    <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-3a1 1 0 001 1h.01a1 1 0 100-2H10a1 1 0 00-1 1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(fullAddress);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  title="Copy address"
+                >
+                  {copied ? (
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  )}
+                </button>
+                {(ensName && (ensResolution?.method === 'subgraph')) && (
+                  <a 
+                    href={getEnscribeUrl(fullAddress, contract.chain, ensName, ensResolution?.method)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group relative inline-flex items-center py-1.5 px-2 text-xs font-medium border border-blue-200 rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md ml-2 hover:w-auto w-8 overflow-hidden origin-right"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1 flex-shrink-0">
+                      <rect width="32" height="32" rx="6" fill="currentColor" fillOpacity="0.15"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      Assign ENS via Enscribe
+                    </span>
+                  </a>
+                )}
+                {!ensName && (
+                  <a 
+                    href={getEnscribeUrl(fullAddress, contract.chain, ensName, ensResolution?.method)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group relative inline-flex items-center py-1.5 px-2 text-xs font-medium border border-gray-200 rounded-lg text-gray-700 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md ml-2 hover:w-auto w-8 overflow-hidden origin-right"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1 flex-shrink-0">
+                      <rect width="32" height="32" rx="6" fill="currentColor" fillOpacity="0.15"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      Assign ENS via Enscribe
+                    </span>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 

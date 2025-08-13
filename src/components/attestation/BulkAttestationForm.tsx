@@ -1,10 +1,12 @@
 // components/attestation/BulkAttestationForm.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { NO_EXPIRATION } from "@ethereum-attestation-service/eas-sdk";
 import Notification from './Notification';
 import BulkConfirmationModal from './BulkConfirmationModal';
 import BulkFieldSelector from './BulkFieldSelector';
+import ValidationSummary from './ValidationSummary';
 import { Trash2, Plus, Upload, Download, Save, X } from 'lucide-react';
+
 
 // Import shared constants and utilities
 import { CHAIN_OPTIONS } from '../../constants/chains';
@@ -12,35 +14,16 @@ import { SCHEMA_UID } from '../../constants/eas';
 import { VALID_CATEGORY_IDS } from '../../constants/categories';
 import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
 import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
-import { NotificationType, ConfirmationData } from '../../types/attestation';
+import { NotificationType, ConfirmationData, RowData, ColumnDefinition, AttestationResult, FieldValue, ValidationWarning } from '../../types/attestation';
+import { parseAndCleanCsv } from '../../utils/csvUtils';
 import { formFields } from '../../constants/formFields';
+
+import { validateProjectField } from '../../utils/projectValidation';
+import { validateCategoryField } from '../../utils/categoryValidation';
+import OwnerProjectInput from './OwnerProjectInput';
 import { CHAINS } from '../../constants/chains';
 
-// Types definitions
-interface RowData {
-  [key: string]: string;
-  chain_id: string;
-  address: string;
-  contract_name: string;
-  owner_project: string;
-  usage_category: string;
-  is_contract: string;
-}
 
-interface AttestationResult {
-  address: string;
-  success: boolean;
-  uid: string;
-}
-
-interface ColumnDefinition {
-  id: string;
-  name: string;
-  required: boolean;
-  validator?: (value: string) => string | null;
-  needsCustomValidation?: boolean;
-  type?: string;
-}
 
 // Define initial empty row
 const EMPTY_ROW: RowData = {
@@ -68,13 +51,13 @@ const BASE_COLUMNS: ColumnDefinition[] = [
     id: 'chain_id', 
     name: 'Chain', 
     required: true,
-    validator: (value: string) => validateChain(value, CHAIN_OPTIONS)
+    validator: (value: FieldValue) => validateChain(value as string, CHAIN_OPTIONS)
   },
   { 
     id: 'address', 
     name: 'Address', 
     required: true,
-    validator: (value: string) => validateAddress(value)
+    validator: (value: FieldValue) => validateAddress(value as string)
   },
   { id: 'contract_name', name: 'Contract Name', required: false },
   { 
@@ -87,13 +70,13 @@ const BASE_COLUMNS: ColumnDefinition[] = [
     id: 'usage_category', 
     name: 'Usage Category', 
     required: false,
-    validator: (value: string) => validateCategory(value)
+    validator: (value: FieldValue) => validateCategory(value as string)
   },
   { 
     id: 'is_contract', 
     name: 'Is Contract', 
     required: false,
-    validator: (value: string) => validateBoolean(value)
+    validator: (value: FieldValue) => validateBoolean(value as string)
   },
 ];
 
@@ -109,10 +92,14 @@ const BulkAttestationForm: React.FC = () => {
   const [activeColumns, setActiveColumns] = useState<ColumnDefinition[]>(BASE_COLUMNS);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [warnings, setWarnings] = useState<{ [key: string]: ValidationWarning[] }>({});
+  const [showValidationSummary, setShowValidationSummary] = useState(false);
+  const [isValidationMode, setIsValidationMode] = useState(false);
+
   // Show notification function
-  const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success'): void => {
     setNotification({ message, type });
-  };
+  }, []);
 
   // Check for URL parameters to pre-fill data
   useEffect(() => {
@@ -229,11 +216,12 @@ const BulkAttestationForm: React.FC = () => {
     };
     
     fetchProjects();
-  }, []);
+  }, [showNotification]);
 
   // Add a new empty row
   const addRow = () => {
     setRows([...rows, { ...EMPTY_ROW }]);
+    // Keep validation summary open if it was open
   };
 
   // Delete a row by index
@@ -241,83 +229,166 @@ const BulkAttestationForm: React.FC = () => {
     if (rows.length === 1) {
       // Keep at least one row, just clear it
       setRows([{ ...EMPTY_ROW }]);
+      // Clear all errors and warnings for the cleared row
+      const newErrors = { ...errors };
+      const newWarnings = { ...warnings };
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith('0-')) {
+          delete newErrors[key];
+        }
+      });
+      Object.keys(newWarnings).forEach(key => {
+        if (key.startsWith('0-')) {
+          delete newWarnings[key];
+        }
+      });
+      setErrors(newErrors);
+      setWarnings(newWarnings);
     } else {
+      // Remove the row
       setRows(rows.filter((_, i) => i !== index));
+      
+      // Update error and warning indices
+      const newErrors: { [key: string]: string } = {};
+      const newWarnings: { [key: string]: ValidationWarning[] } = {};
+      
+      Object.entries(errors).forEach(([key, value]) => {
+        const [rowIndexStr, field] = key.split('-');
+        const rowIndex = parseInt(rowIndexStr);
+        
+        if (rowIndex < index) {
+          // Keep errors for rows before the deleted row
+          newErrors[key] = value;
+        } else if (rowIndex > index) {
+          // Shift down errors for rows after the deleted row
+          const newKey = `${rowIndex - 1}-${field}`;
+          newErrors[newKey] = value;
+        }
+        // Skip errors for the deleted row (rowIndex === index)
+      });
+      
+      Object.entries(warnings).forEach(([key, value]) => {
+        const [rowIndexStr, field] = key.split('-');
+        const rowIndex = parseInt(rowIndexStr);
+        
+        if (rowIndex < index) {
+          // Keep warnings for rows before the deleted row
+          newWarnings[key] = value;
+        } else if (rowIndex > index) {
+          // Shift down warnings for rows after the deleted row
+          const newKey = `${rowIndex - 1}-${field}`;
+          newWarnings[newKey] = value;
+        }
+        // Skip warnings for the deleted row (rowIndex === index)
+      });
+      
+      setErrors(newErrors);
+      setWarnings(newWarnings);
     }
+    // Keep validation summary open if it was open
   };
 
   // Update a specific field in a row
-  const updateRow = (index: number, field: string, value: string) => {
+  const updateRow = useCallback(async (index: number, field: string, value: string) => {
     const newRows = [...rows];
     newRows[index] = { ...newRows[index], [field]: value };
     setRows(newRows);
-    
-    // Clear any errors for this field
-    if (errors[`${index}-${field}`]) {
-      const newErrors = { ...errors };
-      delete newErrors[`${index}-${field}`];
-      setErrors(newErrors);
-    }
 
-    // Run validation for the updated field
+    const newErrors = { ...errors };
+    const newWarnings = { ...warnings };
+    const errorKey = `${index}-${field}`;
+    const warningKey = `${index}-${field}`;
+
+    delete newErrors[errorKey];
+    delete newWarnings[warningKey];
+
     const column = activeColumns.find(col => col.id === field);
     if (column) {
-      const newErrors = { ...errors };
-      
-      // Check if required field is empty
       if (column.required && !value) {
-        newErrors[`${index}-${field}`] = `${column.name} is required`;
-      }
-      // Run validator if value exists
-      else if (value && column.validator) {
+        newErrors[errorKey] = `${column.name} is required`;
+      } else if (column.validator) {
         const validationError = column.validator(value);
         if (validationError) {
-          newErrors[`${index}-${field}`] = validationError;
+          newErrors[errorKey] = validationError;
         }
       }
-      // Special validation for owner_project
-      else if (field === 'owner_project' && value && validProjects.length > 0) {
-        if (!validProjects.includes(value)) {
-          newErrors[`${index}-${field}`] = `Unknown project: "${value}"`;
-        }
-      }
+      
+      // Note: owner_project warnings are now handled in validateRows() for the summary
+    }
+    
+    setErrors(newErrors);
+    setWarnings(newWarnings);
+    
+    // Keep validation summary open - it will update dynamically
+  }, [rows, errors, warnings, activeColumns]);
 
-      setErrors(newErrors);
+  const handleSuggestionSelection = (rowIndex: number, field: string, suggestion: string): void => {
+    updateRow(rowIndex, field, suggestion);
+    const warningKey = `${rowIndex}-${field}`;
+    const newWarnings = { ...warnings };
+    delete newWarnings[warningKey];
+    setWarnings(newWarnings);
+  };
+
+  const handleCloseValidationSummary = (): void => {
+    setShowValidationSummary(false);
+  };
+
+  const handleNavigateToField = (rowIndex: number, field: string): void => {
+    // Find the table row element and scroll to it
+    const tableRow = document.querySelector(`[data-row-index="${rowIndex}"]`);
+    if (tableRow) {
+      tableRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Add a temporary highlight effect
+      tableRow.classList.add('bg-yellow-100', 'border-yellow-300');
+      setTimeout(() => {
+        tableRow.classList.remove('bg-yellow-100', 'border-yellow-300');
+      }, 2000);
+      
+      // Focus on the specific field if possible
+      const fieldInput = tableRow.querySelector(`[data-field="${field}"] input`);
+      if (fieldInput) {
+        (fieldInput as HTMLElement).focus();
+      }
     }
   };
 
   // Validate all rows before submission
-  const validateRows = () => {
+  const validateRows = async () => {
     const newErrors: { [key: string]: string } = {};
+    const newWarnings: { [key: string]: ValidationWarning[] } = {};
     let isValid = true;
 
-    rows.forEach((row, index) => {
+    for (const [rowIndex, row] of rows.entries()) {
       // Skip empty rows
       if (Object.values(row).every(value => !value) && rows.length > 1) {
-        return;
+        continue;
       }
 
       // Check each column
-      activeColumns.forEach(column => {
+      for (const column of activeColumns) {
         const value = row[column.id];
+        const errorKey = `${rowIndex}-${column.id}`;
+        const warningKey = `${rowIndex}-${column.id}`;
 
         // Check required fields
         if (column.required && !value) {
-          newErrors[`${index}-${column.id}`] = `${column.name} is required`;
+          newErrors[errorKey] = `${column.name} is required`;
           isValid = false;
-          return;
+          continue;
         }
 
         // Skip validation if field is empty and not required
         if (!value && !column.required) {
-          return;
+          continue;
         }
 
         // Run field-specific validation
         if (column.validator) {
           const validationError = column.validator(value);
           if (validationError) {
-            newErrors[`${index}-${column.id}`] = validationError;
+            newErrors[errorKey] = validationError;
             isValid = false;
           }
         }
@@ -325,14 +396,61 @@ const BulkAttestationForm: React.FC = () => {
         // Special validation for owner_project
         if (column.id === 'owner_project' && value && validProjects.length > 0) {
           if (!validProjects.includes(value)) {
-            newErrors[`${index}-${column.id}`] = `Unknown project: "${value}"`;
-            isValid = false;
+            // Get warnings for potential typos
+            const projectWarnings = await validateProjectField(column.id, value, true);
+            if (projectWarnings.length > 0) {
+              // Separate actual errors from other warnings
+              const actualErrors = projectWarnings.filter(w => w.isError);
+              const otherWarnings = projectWarnings.filter(w => !w.isError);
+              
+              // Add other warnings (like similarity warnings)
+              if (otherWarnings.length > 0) {
+                newWarnings[warningKey] = (newWarnings[warningKey] || []).concat(otherWarnings);
+              }
+              
+              // Add project errors as errors (but preserve suggestions for quick-fix)
+              if (actualErrors.length > 0) {
+                const errorMessage = actualErrors[0].message;
+                newErrors[errorKey] = errorMessage;
+                // Also add to warnings to preserve quick-fix suggestions in ValidationSummary
+                newWarnings[warningKey] = (newWarnings[warningKey] || []).concat(actualErrors);
+                isValid = false;
+              }
+            } else {
+              newErrors[errorKey] = `Unknown project: "${value}"`;
+              isValid = false;
+            }
           }
         }
-      });
-    });
+
+        // Special validation for usage_category
+        if (column.id === 'usage_category' && value) {
+          const categoryWarnings = await validateCategoryField(column.id, value);
+          if (categoryWarnings.length > 0) {
+            // Separate conversions (warnings) from actual errors
+            const conversions = categoryWarnings.filter(w => w.isConversion);
+            const actualErrors = categoryWarnings.filter(w => !w.isConversion);
+            
+            // Add conversions as warnings
+            if (conversions.length > 0) {
+              newWarnings[warningKey] = conversions;
+            }
+            
+            // Add invalid categories as errors (but preserve suggestions for quick-fix)
+            if (actualErrors.length > 0) {
+              const errorMessage = actualErrors[0].message;
+              newErrors[errorKey] = errorMessage;
+              // Also add to warnings to preserve quick-fix suggestions in ValidationSummary
+              newWarnings[warningKey] = (newWarnings[warningKey] || []).concat(actualErrors);
+              isValid = false;
+            }
+          }
+        }
+      }
+    }
 
     setErrors(newErrors);
+    setWarnings(newWarnings);
     return isValid;
   };
 
@@ -366,11 +484,23 @@ const BulkAttestationForm: React.FC = () => {
   };
 
   // Handle submission request
-  const handleSubmissionRequest = (e: React.FormEvent<HTMLButtonElement>): void => {
+  const handleSubmissionRequest = async (e: React.FormEvent<HTMLButtonElement>): Promise<void> => {
     e.preventDefault();
 
-    if (!validateRows()) {
-      return;
+    const isValid = await validateRows();
+    
+    // Check if there are any errors or warnings (excluding conversions)
+    const hasErrors = Object.keys(errors).length > 0;
+    const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+      warningList.some(w => !w.isConversion)
+    );
+    
+    // Always show validation summary to provide feedback
+    setIsValidationMode(true);
+    setShowValidationSummary(true);
+    
+    if (!isValid || hasErrors || hasRealWarnings) {
+      return; // Stop here if there are issues
     }
 
     // Filter out empty rows and dummy rows
@@ -496,68 +626,59 @@ const BulkAttestationForm: React.FC = () => {
   };
 
   // Handle CSV import
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const csvText = event.target?.result as string;
-      const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+      const { rows: newRows, columns: newColumns, warnings: newWarnings, errors: parseErrors, conversions } = await parseAndCleanCsv(csvText, EMPTY_ROW);
+
+      setRows(newRows);
       
-      if (lines.length < 2) {
-        showNotification('CSV file must contain at least a header row and one data row', 'error');
+      // Add conversions as special warnings
+      const allWarnings = { ...newWarnings };
+      Object.entries(conversions).forEach(([key, conversion]) => {
+        allWarnings[key] = allWarnings[key] || [];
+        allWarnings[key].push({
+          message: `Chain ID converted: "${conversion.original}" → ${conversion.converted}`,
+          isConversion: true
+        });
+      });
+      
+      setWarnings(allWarnings);
+
+      // Show validation summary immediately after import to display warnings and conversions
+      setIsValidationMode(false);
+      setShowValidationSummary(true);
+
+      if (parseErrors.length > 0) {
+        showNotification(`CSV imported with errors: ${parseErrors.join(', ')}`, 'error');
+      } else {
+        const conversionCount = Object.keys(conversions).length;
+        if (conversionCount > 0) {
+          showNotification(`CSV imported successfully with ${conversionCount} chain ID conversion${conversionCount !== 1 ? 's' : ''}. Please review the changes below.`, 'success');
+        } else {
+          showNotification('CSV file imported successfully. Please review any warnings.', 'success');
+        }
+      }
+
+      if (newRows.length > 50) {
+        showNotification(`You can only import up to 50 attestations at once. The CSV file has ${newRows.length} rows.`, "error");
+        setRows(newRows.slice(0, 50));
         return;
       }
-
-      // Parse headers
-      const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
       
-      // Validate required fields are present
-      const requiredFields = activeColumns.filter(col => col.required).map(col => col.id.toLowerCase());
-      const missingRequired = requiredFields.filter(field => 
-        !headers.some(header => header === field || header === activeColumns.find(col => col.id === field)?.name.toLowerCase())
-      );
-
-      if (missingRequired.length > 0) {
-        showNotification(`Missing required fields: ${missingRequired.join(', ')}`, 'error');
-        return;
-      }
-
-      try {
-        // Map CSV headers to our fields
-        const fieldMap: { [key: number]: string } = {};
-        headers.forEach((header, index) => {
-          const field = activeColumns.find(col => 
-            col.id.toLowerCase() === header || 
-            col.name.toLowerCase() === header
-          );
-          if (field) {
-            fieldMap[index] = field.id;
-          }
-        });
-
-        // Parse data rows
-        const newRows: RowData[] = lines.slice(1).map(line => {
-          const values = line.split(',').map(value => value.trim());
-          const row: RowData = { ...EMPTY_ROW };
-          
-          Object.entries(fieldMap).forEach(([index, fieldId]) => {
-            row[fieldId] = values[parseInt(index)] || '';
-          });
-
-          return row;
-        });
-
-        setRows(newRows);
-        showNotification('CSV file imported successfully', 'success');
-      } catch (error) {
-        console.error('Error parsing CSV:', error);
-        showNotification('Error parsing CSV file', 'error');
-      }
+      setActiveColumns(newColumns);
     };
 
     reader.readAsText(file);
+    
+    // Reset file input to allow re-uploading the same file
+    if(fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Handle CSV export
@@ -690,7 +811,7 @@ const BulkAttestationForm: React.FC = () => {
   const renderTableCell = (column: ColumnDefinition, row: RowData, rowIndex: number) => {
     const value = row[column.id] || '';
     const error = errors[`${rowIndex}-${column.id}`];
-    const baseInputClasses = `block w-full px-3 py-2 text-sm border-0 placeholder-gray-400 focus:ring-0 ${
+    const baseInputClasses = `block w-full px-3 py-2 text-sm border-0 placeholder-gray-400 focus:ring-0 focus:outline-none ${
       error ? 'text-red-900' : 'text-gray-900'
     }`;
 
@@ -700,17 +821,19 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for boolean fields (radio or is_* fields)
     if (field?.type === 'radio' || column.id.startsWith('is_')) {
       return (
-        <td key={column.id} className="relative">
-          <select
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="">Select...</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        <td key={column.id} className="relative" data-field={column.id}>
+          <div className="relative w-full">
+            <select
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            >
+              <option value="">Select...</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -718,14 +841,16 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for date fields
     if (field?.type === 'date') {
       return (
-        <td key={column.id} className="relative">
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          />
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        <td key={column.id} className="relative" data-field={column.id}>
+          <div className="relative w-full">
+            <input
+              type="date"
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            />
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -733,15 +858,17 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for number fields
     if (field?.type === 'number') {
       return (
-        <td key={column.id} className="relative">
-          <input
-            type="number"
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-            step={column.id === 'erc20_decimals' ? '1' : 'any'}
-          />
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        <td key={column.id} className="relative" data-field={column.id}>
+          <div className="relative w-full">
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+              step={column.id === 'erc20_decimals' ? '1' : 'any'}
+            />
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -749,41 +876,50 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for multiselect fields
     if (field?.type === 'multiselect' && field.options) {
       return (
-        <td key={column.id} className="relative">
-          <select
-            value={value}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="">Select...</option>
-            {field.options.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        <td key={column.id} className="relative" data-field={column.id}>
+          <div className="relative w-full">
+            <select
+              value={value}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            >
+              <option value="">Select...</option>
+              {field.options.map((option: { value: string | number; label: string }) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
 
     // Special handling for chain_id
     if (column.id === 'chain_id') {
+      const isValidChain = value && CHAIN_OPTIONS.some(option => option.value === value);
+      const selectValue = isValidChain ? value : '';
+      
       return (
-        <td key={column.id} className="relative">
-          <select
-            value={CHAIN_OPTIONS.some(option => option.value === value) ? value : ''}
-            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-            className={baseInputClasses}
-          >
-            <option value="" disabled>Select a chain</option>
-            {CHAIN_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        <td key={column.id} className="relative" data-field={column.id}>
+          <div className="relative w-full">
+            <select
+              value={selectValue}
+              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+              className={baseInputClasses}
+            >
+              <option value="" disabled>Select a chain</option>
+              {CHAIN_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {/* Show invalid chain value if not in options */}
+
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+          </div>
         </td>
       );
     }
@@ -791,31 +927,15 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for owner_project
     if (column.id === 'owner_project') {
       return (
-        <td key={column.id} className="relative">
-          <div className="relative">
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-              className={baseInputClasses}
-              list="valid-projects"
-            />
-            {isLoadingProjects ? (
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <div className="animate-spin h-4 w-4 border-2 border-indigo-500 rounded-full border-t-transparent" />
-              </div>
-            ) : (
-              value && validProjects.includes(value) && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">✓</div>
-              )
-            )}
-          </div>
-          <datalist id="valid-projects">
-            {validProjects.map(project => (
-              <option key={project} value={project} />
-            ))}
-          </datalist>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        <td key={column.id} className="relative" data-field={column.id}>
+          <OwnerProjectInput
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            validProjects={validProjects}
+            isLoadingProjects={isLoadingProjects}
+            error={error}
+            baseInputClasses={baseInputClasses}
+          />
         </td>
       );
     }
@@ -823,8 +943,8 @@ const BulkAttestationForm: React.FC = () => {
     // Special handling for usage_category
     if (column.id === 'usage_category') {
       return (
-        <td key={column.id} className="relative">
-          <div className="relative">
+        <td key={column.id} className="relative" data-field={column.id}>
+          <div className="relative w-full">
             <input
               type="text"
               value={value}
@@ -835,28 +955,30 @@ const BulkAttestationForm: React.FC = () => {
             {value && VALID_CATEGORY_IDS.includes(value) && (
               <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">✓</div>
             )}
+            <datalist id="valid-categories">
+              {VALID_CATEGORY_IDS.map(categoryId => (
+                <option key={categoryId} value={categoryId} />
+              ))}
+            </datalist>
+            {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
           </div>
-          <datalist id="valid-categories">
-            {VALID_CATEGORY_IDS.map(categoryId => (
-              <option key={categoryId} value={categoryId} />
-            ))}
-          </datalist>
-          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
         </td>
       );
     }
 
     // Default input field for other columns
     return (
-      <td key={column.id} className="relative">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
-          className={baseInputClasses}
-          placeholder={`Enter ${column.name.toLowerCase()}`}
-        />
-        {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+      <td key={column.id} className="relative" data-field={column.id}>
+        <div className="relative w-full">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => updateRow(rowIndex, column.id, e.target.value)}
+            className={baseInputClasses}
+            placeholder={`Enter ${column.name.toLowerCase()}`}
+          />
+          {error && <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-red-500" />}
+        </div>
       </td>
     );
   };
@@ -936,6 +1058,20 @@ const BulkAttestationForm: React.FC = () => {
           </div>
         </div>
 
+        {/* Validation Summary */}
+        {showValidationSummary && (
+          <ValidationSummary
+            errors={errors}
+            warnings={warnings}
+            rows={rows}
+            activeColumns={activeColumns}
+            onSuggestionClick={handleSuggestionSelection}
+            onClose={handleCloseValidationSummary}
+            onNavigateToField={handleNavigateToField}
+            isValidationMode={isValidationMode}
+          />
+        )}
+
         <div className="border-t border-gray-200">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -971,7 +1107,11 @@ const BulkAttestationForm: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {rows.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={rowIndex} 
+                    className="hover:bg-gray-50 transition-colors"
+                    data-row-index={rowIndex}
+                  >
                     {activeColumns.map((column) => renderTableCell(column, row, rowIndex))}
                     <td className="w-10 p-0">
                       <button
@@ -995,7 +1135,17 @@ const BulkAttestationForm: React.FC = () => {
               type="button"
               onClick={handleSubmissionRequest}
               disabled={isSubmitting || rows.length === 0}
-              className="flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
+              className={(() => {
+                const hasErrors = Object.keys(errors).length > 0;
+                const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                  warningList.some(w => !w.isConversion)
+                );
+                const hasIssues = hasErrors || hasRealWarnings;
+                
+                return hasIssues 
+                  ? "flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg hover:from-amber-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
+                  : "flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]";
+              })()}
             >
               {isSubmitting ? (
                 <>
@@ -1006,10 +1156,27 @@ const BulkAttestationForm: React.FC = () => {
                   Submitting...
                 </>
               ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Create Bulk Attestations
-                </>
+                (() => {
+                  const hasErrors = Object.keys(errors).length > 0;
+                  const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                    warningList.some(w => !w.isConversion)
+                  );
+                  const hasIssues = hasErrors || hasRealWarnings;
+                  
+                  return hasIssues ? (
+                    <>
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Validate Values
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Create Bulk Attestations
+                    </>
+                  );
+                })()
               )}
             </button>
           </div>

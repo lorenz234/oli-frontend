@@ -536,21 +536,21 @@ const HomePage: FC = () => {
             <div className="col-span-1 flex justify-center">
               <Image
                 src="/EF-ESP-logo.svg"
-                alt="Ethereum Foundation"
+                alt="Ethereum Support Program"
                 width={240}
                 height={120}
                 className="object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
-                onClick={() => window.open('https://ethereum.org/', '_blank')}
+                onClick={() => window.open('https://esp.ethereum.foundation/', '_blank')}
               />
             </div>
             <div className="col-span-1 flex justify-center">
                 <Image
-                    src="/growthepie-logo.png"
+                    src="/growthepie-logo-dot-com.svg"
                     alt="growthepie"
                     width={240}
                     height={120}
                     className="object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
-                    onClick={() => window.open('https://growthepie.xyz/', '_blank')}
+                    onClick={() => window.open('https://growthepie.com/', '_blank')}
                 />
                 </div>
             {/* Add more supporter logos as needed */}

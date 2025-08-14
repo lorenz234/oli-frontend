@@ -121,13 +121,11 @@ const generateTagsQuery = (tagDefinitions: TagDefinition[], selectedChain?: stri
               decodedDataJson: {contains: "\\\"value\\\":\\\"${selectedChain}\\\""}
             }
           ],
-          schemaId: {equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"},
-          revoked: {equals: false}
+          schemaId: {equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"}
         }`
       : `where: {
           schemaId: {equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"},
-          decodedDataJson: {contains: "\\\"${tag.tag_id}"},
-          revoked: {equals: false}
+          decodedDataJson: {contains: "\\\"${tag.tag_id}"}
         }`;
 
     return `
@@ -154,8 +152,7 @@ const generateChainDistributionQuery = () => {
     ${chain.id}: aggregateAttestation(
       where: {
         schemaId: {equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"},
-        decodedDataJson: {contains: "\\\"value\\\":\\\"${chain.caip2}\\\""},
-        revoked: {equals: false}
+        decodedDataJson: {contains: "\\\"value\\\":\\\"${chain.caip2}\\\""}
       }
     ) {
       _count {
@@ -191,7 +188,6 @@ const TOTAL_ATTESTATIONS = gql`
     aggregateAttestation(
       where: {
         schemaId: {equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"}
-        revoked: {equals: false}
       }
     ) {
       _count {
@@ -331,9 +327,6 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
       where: {
         schemaId: {
           equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
-        },
-        revoked: {
-          equals: false
         }
       }
     }

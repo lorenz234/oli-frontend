@@ -2,238 +2,32 @@
 
 import React, { useEffect, useState } from 'react';
 
+import { validateProjectField } from '../../utils/projectValidation';
+
 interface ValidationCheckerProps {
   field: string;
   value: string;
 }
 
-interface ProjectData {
-  owner_project: string;
-  display_name: string;
-  main_github?: string;
-  website?: string;
-  [key: string]: any;
-}
-
 const ValidationChecker: React.FC<ValidationCheckerProps> = ({ field, value }) => {
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [projects, setProjects] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch projects data when component mounts
-    const fetchProjects = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch('https://api.growthepie.xyz/v1/labels/projects.json');
-        const data = await response.json();
-        
-        // Transform the data into a more usable format - similar to OwnerProjectSelect
-        if (data && data.data && data.data.data) {
-          const projectsData = data.data.data.map((project: any[]) => {
-            // Based on the API response structure where types are defined in data.types
-            const types = data.data.types;
-            const projectObj: ProjectData = {
-              owner_project: '',
-              display_name: ''
-            };
-            
-            types.forEach((type: string, index: number) => {
-              if (project[index] !== null) {
-                projectObj[type] = project[index];
-              }
-            });
-            
-            return projectObj;
-          });
-          
-          setProjects(projectsData);
-        }
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      } finally {
-        setIsLoading(false);
+    const checkValidation = async () => {
+      if (!value) {
+        setWarnings([]);
+        return;
       }
+      
+      setIsLoading(true);
+      const newWarnings = await validateProjectField(field, value);
+      setWarnings(newWarnings.map(warning => warning.message));
+      setIsLoading(false);
     };
 
-    fetchProjects();
-  }, []);
-
-  useEffect(() => {
-    if (!value) {
-      setWarnings([]);
-      return;
-    }
-
-    const findSimilarProjects = (searchValue: string, fieldType: string): ProjectData[] => {
-      if (!searchValue || !projects.length) return [];
-      const normalizedSearchValue = searchValue.toLowerCase().trim();
-      const fieldMapping: { [key: string]: string } = {
-        'name': 'owner_project',
-        'display_name': 'display_name',
-        'github': 'main_github',
-        'website': 'website'
-      };
-      const apiField = fieldMapping[fieldType];
-      if (!apiField) return [];
-      // First, find exact matches
-      const exactMatches = projects.filter(project => {
-        const projectValue = project[apiField];
-        if (!projectValue) return false;
-        if (Array.isArray(projectValue)) {
-          return projectValue.some(val => 
-            val && val.toLowerCase() === normalizedSearchValue
-          );
-        }
-        return projectValue.toLowerCase() === normalizedSearchValue;
-      });
-      if (exactMatches.length > 0) {
-        return exactMatches;
-      }
-      // Then find similar matches with different strategies
-      return projects.filter(project => {
-        const projectValue = project[apiField];
-        if (!projectValue) return false;
-        // Handle array values (like multiple websites)
-        if (Array.isArray(projectValue)) {
-          return projectValue.some(val => isSimilarValue(val, normalizedSearchValue, fieldType));
-        }
-        return isSimilarValue(projectValue, normalizedSearchValue, fieldType);
-      });
-    };
-
-    const newWarnings: string[] = [];
-
-    // Check based on field type
-    if (field === 'description') {
-      // Check 1: Description length
-      if (value.length > 500) {
-        newWarnings.push(`Description exceeds maximum length of 500 characters (${value.length}/500)`);
-      }
-      
-      // Check 2: Special characters
-      if (value.includes(':') || value.includes("'")) {
-        newWarnings.push("Description contains ':' or ''' characters which may cause YAML parsing issues");
-      }
-    } else if (['name', 'display_name', 'github', 'website'].includes(field) && projects.length > 0) {
-      // Find similar projects using our search function
-      const similarProjects = findSimilarProjects(value, field);
-      
-      if (similarProjects.length > 0) {
-        // Check if any are exact matches
-        const fieldMapping: { [key: string]: string } = {
-          'name': 'owner_project',
-          'display_name': 'display_name',
-          'github': 'main_github',
-          'website': 'website'
-        };
-        
-        const apiField = fieldMapping[field];
-        const exactMatches = similarProjects.filter(project => {
-          const projectValue = project[apiField];
-          if (Array.isArray(projectValue)) {
-            return projectValue.some(val => val && val.toLowerCase() === value.toLowerCase());
-          }
-          return projectValue && projectValue.toLowerCase() === value.toLowerCase();
-        });
-        
-        if (exactMatches.length > 0) {
-          const projectNames = exactMatches.map(p => `"${p.display_name}"`).join(', ');
-          newWarnings.push(`This ${field} already exists for project ${projectNames}`);
-        } else {
-          const projectNames = similarProjects.map(p => `"${p.display_name}"`).join(', ');
-          newWarnings.push(`This ${field} is very similar to existing entries in ${projectNames}`);
-        }
-      }
-    }
-
-    setWarnings(newWarnings);
-  }, [field, value, projects]);
-
-  // Check if two values are similar based on field type
-  const isSimilarValue = (value1: string, value2: string, fieldType: string): boolean => {
-    if (!value1 || !value2) return false;
-    
-    const v1 = value1.toLowerCase().trim();
-    const v2 = value2.toLowerCase().trim();
-    
-    // Exact match
-    if (v1 === v2) return true;
-    
-    // For URLs, compare domains
-    if (fieldType === 'website' || fieldType === 'github') {
-      try {
-        const getDomain = (url: string): string => {
-          try {
-            const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
-            return urlObj.hostname;
-          } catch {
-            return url;
-          }
-        };
-        
-        const domain1 = getDomain(v1);
-        const domain2 = getDomain(v2);
-        
-        // Same domain
-        if (domain1 === domain2) return true;
-        
-        // Domain without www
-        const cleanDomain1 = domain1.replace(/^www\./, '');
-        const cleanDomain2 = domain2.replace(/^www\./, '');
-        if (cleanDomain1 === cleanDomain2) return true;
-        
-        // Domain without TLD
-        const domainWithoutTLD1 = cleanDomain1.split('.').slice(0, -1).join('.');
-        const domainWithoutTLD2 = cleanDomain2.split('.').slice(0, -1).join('.');
-        if (domainWithoutTLD1 && domainWithoutTLD2 && 
-            (domainWithoutTLD1 === domainWithoutTLD2)) return true;
-      } catch {
-        // URL parsing failed, continue with other checks
-      }
-    }
-    
-    // For project names and display names
-    if (fieldType === 'name' || fieldType === 'display_name') {
-      // One is contained in the other
-      if (v1.includes(v2) || v2.includes(v1)) {
-        // If one is a substring of the other and they're similar in length
-        const lengthRatio = Math.min(v1.length, v2.length) / Math.max(v1.length, v2.length);
-        if (lengthRatio > 0.8) return true;
-      }
-      
-      // Tokenize and compare words
-      const tokenize = (str: string): string[] => 
-        str.split(/[^a-z0-9]+/).filter(token => token.length > 0);
-      
-      const tokens1 = tokenize(v1);
-      const tokens2 = tokenize(v2);
-      
-      // If they share significant tokens
-      const commonTokens = tokens1.filter(token => tokens2.includes(token));
-      if (commonTokens.length > 0 && 
-          commonTokens.length >= Math.min(tokens1.length, tokens2.length) * 0.7) {
-        return true;
-      }
-      
-      // Check for small edit distance in short strings
-      if (v1.length < 10 && v2.length < 10) {
-        let differences = 0;
-        const maxDifferences = 1;
-        
-        // Simple character-by-character comparison for short strings
-        for (let i = 0; i < Math.min(v1.length, v2.length); i++) {
-          if (v1[i] !== v2[i]) differences++;
-          if (differences > maxDifferences) break;
-        }
-        
-        differences += Math.abs(v1.length - v2.length);
-        if (differences <= maxDifferences) return true;
-      }
-    }
-    
-    return false;
-  };
+    checkValidation();
+  }, [field, value]);
 
   return (
     <div className="mt-1">

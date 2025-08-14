@@ -424,10 +424,11 @@ const HomePage: FC = () => {
           {projects.map((project, index) => {
             // Map project URLs to images - add more mappings as needed
             const projectImages: { [key: string]: string } = {
-              'https://labels.growthepie.xyz/': '/project-images/growthepie-labels.png',
-              'https://www.growthepie.xyz/applications': '/project-images/growthepie-applications.png',
+              'https://labels.growthepie.com/': '/project-images/growthepie-labels.png',
+              'https://www.growthepie.com/applications/': '/project-images/growthepie-applications.png',
               'https://agx.app/': '/project-images/agx.png',
               'https://repo.sourcify.dev/': '/project-images/sourcify.png',
+              'https://app.enscribe.xyz/': '/project-images/enscribe-explorer.png',
             };
                         
             // Check if we have an image for this project
@@ -532,31 +533,32 @@ const HomePage: FC = () => {
             Supported By
           </h2>
           <div className="grid grid-cols-2 gap-8 md:grid-cols-2">
-            <div className="col-span-1 flex justify-center">
+            {/* Temporarily hidden until confirmation
+            <div className="col-span-1 flex flex-col items-center">
+              <p className="text-gray-600 mb-2 mr-8">Grant from</p>
               <Image
-                src="/eth-foundation-logo.png"
-                alt="Ethereum Foundation"
+                src="/EF-ESP-logo.svg"
+                alt="Ethereum Support Program"
                 width={240}
                 height={120}
                 className="object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
-                onClick={() => window.open('https://ethereum.org/', '_blank')}
+                onClick={() => window.open('https://esp.ethereum.foundation/', '_blank')}
               />
             </div>
-            <div className="col-span-1 flex justify-center">
+            */}
+            <div className="col-span-2 flex justify-center">
                 <Image
-                    src="/growthepie-logo.png"
+                    src="/growthepie-logo-dot-com.svg"
                     alt="growthepie"
                     width={240}
                     height={120}
                     className="object-contain cursor-pointer hover:opacity-90 transition-opacity duration-200"
-                    onClick={() => window.open('https://growthepie.xyz/', '_blank')}
+                    onClick={() => window.open('https://growthepie.com/', '_blank')}
                 />
-                </div>
-            {/* Add more supporter logos as needed */}
+            </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 };

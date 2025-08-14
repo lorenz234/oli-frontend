@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Attestation } from '@/services/attestationService';
 import { CHAINS } from '@/constants/chains';
+import { resolveEnsName, getEnscribeUrl, EnsState } from '@/utils/ens';
 
 interface AttestationField {
   name: string;
@@ -110,6 +111,13 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
   const [expandedAttestation, setExpandedAttestation] = useState<string | null>(null);
   const [showAllAttestations, setShowAllAttestations] = useState(false);
   const [showChainMatches, setShowChainMatches] = useState(false);
+    const [ensState, setEnsState] = useState<EnsState>({
+    resolution: null,
+    loading: false,
+    error: null
+  });
+  const ensResolution = ensState.resolution;
+  const ensName = ensResolution?.name || null;
 
   // Check if any attestation is from growthepie
   const hasGrowthePieAttestation = attestations.some(
@@ -249,6 +257,17 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
 
 
 
+  const getChainName = useCallback(() => {
+    if (growthePieData?.chains && growthePieData.chains.length > 1) {
+      return `${growthePieData.chains.length} Chains`;
+    }
+    if (growthePieData?.chains && growthePieData.chains.length === 1) {
+      const chainName = growthePieData.chains[0];
+      return chainName.charAt(0).toUpperCase() + chainName.slice(1).replace('_', ' ');
+    }
+    return chainMetadata?.name || 'Multiple Chains';
+  }, [growthePieData, chainMetadata]);
+
   // Fetch growthepie data if we have a growthepie attestation
   useEffect(() => {
     if (hasGrowthePieAttestation && !growthePieData) {
@@ -329,6 +348,31 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
     }
   }, [hasGrowthePieAttestation, address, growthePieData]);
 
+    useEffect(() => {
+    const fetchEnsName = async () => {
+      setEnsState(prev => ({ ...prev, loading: true, error: null }));
+      
+      try {
+        const chainName = getChainName().toLowerCase();
+        const resolution = await resolveEnsName(address, chainName);
+        setEnsState({
+          resolution,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        console.error('ENS resolution failed:', error);
+        setEnsState({
+          resolution: null,
+          loading: false,
+          error: error instanceof Error ? error.message : 'ENS resolution failed'
+        });
+      }
+    };
+
+    fetchEnsName();
+  }, [address, getChainName]);
+
   // Format functions
   function formatFullAddress(addr: string): string {
     if (!addr) return '';
@@ -399,16 +443,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
     )`;
   };
 
-  const getChainName = () => {
-    if (growthePieData?.chains && growthePieData.chains.length > 1) {
-      return `${growthePieData.chains.length} Chains`;
-    }
-    if (growthePieData?.chains && growthePieData.chains.length === 1) {
-      const chainName = growthePieData.chains[0];
-      return chainName.charAt(0).toUpperCase() + chainName.slice(1).replace('_', ' ');
-    }
-    return chainMetadata?.name || 'Multiple Chains';
-  };
+
 
   const isMultichain = () => {
     return growthePieData?.chains && growthePieData.chains.length > 1;
@@ -452,7 +487,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-xs text-white font-serif italic">{getChainName()}</div>
+          <div className="text-xs text-white font-serif italic">{getChainName()}</div>    
           <span className="text-white bg-white/20 rounded-md px-2 py-1 text-xs">
             {attestations.length} attestation{attestations.length !== 1 ? 's' : ''}
           </span>
@@ -463,13 +498,163 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
       <div className="px-6 pb-4 text-sm pt-5">
         <div className="space-y-5">
 
-          {/* Address section */}
           <div className="font-mono mb-5 flex items-center">
-            <div className="text-gray-600 text-xs uppercase mr-2 font-serif">
-              Address:
-            </div>
             <div className="bg-white border border-gray-200 rounded px-2 py-1 text-gray-800 flex-grow flex items-center justify-between">
-              <span className="select-all">{fullAddress}</span>
+              <div className="flex items-center">
+                <a
+                  href={getEnscribeUrl(fullAddress, getChainName().toLowerCase(), ensName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="select-all"
+                >
+                  {ensName || fullAddress}
+                </a>
+                                  {(ensName || ensState.loading) && (
+                    <div className="flex items-center">
+                      {ensState.loading && (
+                        <div className="group relative ml-2">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center animate-pulse">
+                            <div className="absolute inset-0 w-4 h-4 rounded-full border-2 border-transparent border-t-white border-r-white animate-spin"></div>
+                          </div>
+                          <div className="invisible group-hover:visible absolute z-50 w-64 p-4 mt-2 text-sm bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-xl -left-1/2 transform -translate-x-1/2 transition-all duration-300">
+                            <div className="flex items-center mb-2">
+                              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 mr-2 animate-pulse"></div>
+                              <span className="font-medium text-gray-700">Resolving ENS...</span>
+                            </div>
+                            <p className="text-gray-600 text-xs leading-relaxed">Checking multiple resolution methods for the most accurate ENS name.</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                                             {ensResolution?.method === 'primary' && (
+                         <div className="group relative ml-2">
+                           <div className="relative">
+                             <svg className="w-4 h-4 text-emerald-500 transition-all duration-200 hover:text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                             </svg>
+                           </div>
+                           <div className="invisible group-hover:visible absolute z-50 w-64 mt-2 -left-1/2 transform -translate-x-1/2 transition-all duration-200 opacity-0 group-hover:opacity-100">
+                             <div className="bg-white/95 backdrop-blur-sm border border-emerald-200/60 rounded-lg shadow-lg overflow-hidden">
+                               <div className="p-2.5">
+                                 <div className="flex items-center mb-1">
+                                   <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center mr-2">
+                                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                     </svg>
+                                   </div>
+                                   <div>
+                                     <div className="font-medium text-emerald-800 text-sm">Reverse Resolved ENS</div>
+                                     <div className="text-emerald-600 text-xs">Verified by owner</div>
+                                   </div>
+                                 </div>
+                               </div>
+                               <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white border border-emerald-200/60 rotate-45"></div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                      
+                      {ensResolution?.method === 'l2' && (
+                        <div className="group relative ml-2.5">
+                          <div className="relative">
+                          <svg className="w-4 h-4 text-blue-500 transition-all duration-200 hover:text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                             </svg> 
+                          </div>
+                          <div className="invisible group-hover:visible absolute z-50 w-64 mt-4 -left-1/2 transform -translate-x-1/2 transition-all duration-200 opacity-0 group-hover:opacity-100">
+                            <div className="bg-white/95 backdrop-blur-sm border border-blue-200/60 rounded-lg shadow-lg overflow-hidden">
+                              <div className="p-2.5">
+                                <div className="flex items-center mb-1">
+                                   <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center mr-3">
+                                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                     </svg>
+                                   </div>
+                                  <div>
+                                    <div className="font-medium text-blue-800 text-sm">Reverse Resolved ENS</div>
+                                    <div className="text-blue-600 text-xs">Chain-specific resolution</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white border border-blue-200/60 rotate-45"></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                        {ensResolution?.method === 'subgraph' && (
+                         <div className="group relative ml-2.5">
+                           <div className="relative">
+                             <svg className="w-4 h-4 text-amber-500 transition-all duration-200 hover:text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-3a1 1 0 001 1h.01a1 1 0 100-2H10a1 1 0 00-1 1z" clipRule="evenodd" />
+                             </svg>
+                           </div>
+                           <div className="invisible group-hover:visible absolute z-50 w-64 mt-4 -left-1/2 transform -translate-x-1/2 transition-all duration-200 opacity-0 group-hover:opacity-100">
+                             <div className="bg-white/95 backdrop-blur-sm border border-amber-200/60 rounded-lg shadow-lg overflow-hidden">
+                               <div className="p-2.5">
+                                 <div className="flex items-center mb-1">
+                                   <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center mr-3">
+                                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-3a1 1 0 001 1h.01a1 1 0 100-2H10a1 1 0 00-1 1z" clipRule="evenodd" />
+                                     </svg>
+                                   </div>
+                                   <div>
+                                     <div className="font-medium text-amber-800 text-sm">Forward Resolved ENS</div>
+                                     <div className="text-amber-600 text-xs">Less secure - anyone could have pointed to this address</div>
+                                   </div>
+                                 </div>
+                               </div>
+                               <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white border border-amber-200/60 rotate-45"></div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                    </div>
+                  )}
+              </div>
+              <div className="flex items-center">
+              {(ensName && (ensResolution?.method === 'subgraph')) && (
+                <div className="flex items-center">
+                  <a 
+                    href={getEnscribeUrl(fullAddress, getChainName().toLowerCase(), ensName, ensResolution?.method)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="group relative inline-flex items-center py-1.5 px-2 text-xs font-medium border border-blue-200 rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden hover:px-3"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                      <rect width="32" height="32" rx="6" fill="currentColor" fillOpacity="0.15"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="ml-0 group-hover:ml-2 max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
+                      Assign ENS via Enscribe
+                    </span>
+                    <div className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </a>
+                </div>
+              )}
+              {!ensName && (
+                <div className="flex items-center">
+                  <a 
+                    href={getEnscribeUrl(fullAddress, getChainName().toLowerCase(), ensName, ensResolution?.method)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="group relative inline-flex items-center py-1.5 px-2 text-xs font-medium border border-gray-200 rounded-lg text-gray-700 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden hover:px-3"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                      <rect width="32" height="32" rx="6" fill="currentColor" fillOpacity="0.15"/>
+                      <path d="M10 12L6 16L10 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 12L26 16L22 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 10L14 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="ml-0 group-hover:ml-2 max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
+                      Assign ENS via Enscribe
+                    </span>
+                    <div className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </a>
+                </div>
+              )}
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(fullAddress);
@@ -489,6 +674,7 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
                   </svg>
                 )}
               </button>
+            </div>
             </div>
           </div>
 
@@ -941,5 +1127,4 @@ const SearchContractCard: React.FC<SearchContractCardProps> = ({
     </div>
   );
 };
-
-export default SearchContractCard; 
+export default SearchContractCard;

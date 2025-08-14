@@ -2,6 +2,7 @@
 import { ethers } from 'ethers';
 import { FieldValue } from '../types/attestation';
 import { VALID_CATEGORY_IDS } from '../constants/categories';
+import { CHAINS } from '../constants/chains';
 
 export const validateAddress = (address: FieldValue): string => {
   if (!address) return 'Address is required';
@@ -29,16 +30,33 @@ export const validateContractName = (name: FieldValue): string => {
   return '';
 };
 
-export const validateChain = (value: string, validOptions: {value: string}[]): string | null => {
-  return validOptions.some(option => option.value === value) 
-    ? null 
-    : 'Invalid chain value';
+export const validateChain = (value: string, validOptions?: {value: string}[]): string | null => {
+  if (!value || value.trim() === '') {
+    return 'Chain is required';
+  }
+  
+  // Primary validation: Check against actual CHAINS constant
+  const isValidChain = CHAINS.some(chain => chain.caip2 === value);
+  if (!isValidChain) {
+    return `Invalid chain: "${value}". Must be a valid CAIP-2 chain identifier.`;
+  }
+  
+  // Secondary validation: If validOptions provided, also check against it
+  if (validOptions && !validOptions.some(option => option.value === value)) {
+    return 'Chain not available in options';
+  }
+  
+  return null;
 };
 
 export const validateCategory = (value: string): string | null => {
-  return !value || VALID_CATEGORY_IDS.includes(value) 
-    ? null 
-    : 'Invalid category';
+  if (!value) return null; // Empty is valid (optional field)
+  
+  if (VALID_CATEGORY_IDS.includes(value)) {
+    return null; // Valid category
+  }
+  
+  return `Invalid category: "${value}". Please select from available categories.`;
 };
 
 export const validateBoolean = (value: string): string | null => {

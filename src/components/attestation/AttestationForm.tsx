@@ -410,10 +410,12 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
           )}
 
           {field.type === 'custom' && field.component && (
-            field.component({
-              value: formData[field.id],
-              onChange: (value: any) => handleChange(field.id, value)
-            })
+            <>
+              {field.component({
+                value: formData[field.id],
+                onChange: (value: any) => handleChange(field.id, value)
+              })}
+            </>
           )}
         </InputWithCheck>
       </div>

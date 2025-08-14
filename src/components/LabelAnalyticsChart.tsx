@@ -68,7 +68,6 @@ const fetchBlockspaceCoverage = async (): Promise<BlockspaceCoverageData[]> => {
     
     return results.sort((a, b) => b.labeledPercentage - a.labeledPercentage);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Error fetching blockspace coverage:', error);
     return [];
   }
@@ -86,7 +85,6 @@ const fetchTagDefinitions = async (): Promise<TagDefinition[]> => {
     // Extract tags from the nested structure
     return parsedYaml?.tags || [];
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Error fetching tag definitions:', error);
     return [];
   }
@@ -230,7 +228,6 @@ const LabelAnalyticsChart: React.FC = () => {
     const loadTagDefinitions = async () => {
       setIsLoadingTags(true);
       const tags = await fetchTagDefinitions();
-      // eslint-disable-next-line no-console
       console.log('Loaded tag definitions:', tags); // Debug log
       setTagDefinitions(tags);
       
@@ -305,7 +302,6 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
       setBlockspaceCoverageData(data);
     } catch (error) {
       setBlockspaceCoverageError('Failed to load blockspace coverage data');
-      // eslint-disable-next-line no-console
       console.error('Blockspace coverage error:', error);
     } finally {
       setBlockspaceCoverageLoading(false);

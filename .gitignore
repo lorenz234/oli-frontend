@@ -4,3 +4,6 @@ node_modules/
 chains
 1_data_model
 2_label_pool
+.DS_Store
+.vscode
+tsconfig.tsbuildinfo

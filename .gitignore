@@ -7,3 +7,6 @@ chains
 .DS_Store
 .vscode
 tsconfig.tsbuildinfo
+Content/AI Context/
+Content/Articles/
+Content/blog/drafts/

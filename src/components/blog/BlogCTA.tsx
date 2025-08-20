@@ -42,7 +42,7 @@ const defaultActions: CTAAction[] = [
 
 export default function BlogCTA({
   title = "Ready to Get Involved with OLI?",
-  description = "Join thousands of contributors building the future of decentralized address labeling.",
+  description = "Join the many contributors building the future of decentralized address labeling.",
   actions = defaultActions,
   variant = 'default'
 }: BlogCTAProps) {

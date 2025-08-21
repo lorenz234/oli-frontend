@@ -8,6 +8,9 @@ const getChainIdFromChainName = (chainName: string): number | undefined => {
   if (name.includes('ethereum')) return 1;
   if (name.includes('linea')) return 59144;
   if (name.includes('base')) return 8453;
+  if (name.includes('arbitrum')) return 42161;
+  if (name.includes('optimism')) return 10;
+  if (name.includes('scroll')) return 534352;
   return undefined;
 };
 
@@ -69,7 +72,8 @@ export const resolveEnsName = async (address: string, chainName: string): Promis
     }
 
     // 2. L2-specific reverse lookup via contracts - Medium timeout 4s
-    if ((chainId === 59144 || chainId === 8453) && network.contracts?.reverseRegistrar && network.abis?.reverseRegistrar) {
+    // Currently only Ethereum (1), Linea (59144), and Base (8453) have ENS contracts configured
+    if ((chainId === 1 || chainId === 59144 || chainId === 8453) && network.contracts?.reverseRegistrar && network.abis?.reverseRegistrar) {
       try {
         const reverseRegistrar = new ethers.Contract(network.contracts.reverseRegistrar, network.abis.reverseRegistrar, provider);
         const node = await timeoutPromise(reverseRegistrar.node(address), 4000);
@@ -140,8 +144,8 @@ export const resolveEnsName = async (address: string, chainName: string): Promis
 export const getEnscribeUrl = (address: string, chain: string, ensName?: string | null, method?: 'primary' | 'l2' | 'subgraph'): string => {
   const chainId = getChainIdFromChainName(chain.toLowerCase());
   
-  // Default to Ethereum if chain is not found, or handle as an error
-  const enscribeChainId = chainId === 59144 ? '59144' : chainId === 8453 ? '8453' : '1';
+  // Use the actual chain ID for the URL, defaulting to Ethereum (1) if not found
+  const enscribeChainId = chainId ? chainId.toString() : '1';
 
   if (ensName && method === 'subgraph') {
     return `https://app.enscribe.xyz/explore/${enscribeChainId}/${address}`; 
@@ -149,5 +153,5 @@ export const getEnscribeUrl = (address: string, chain: string, ensName?: string 
   if (ensName) {
     return `https://app.enscribe.xyz/explore/${enscribeChainId}/${address}`;
   }
-  return `https://app.enscribe.xyz/nameContract?address=${address}&chain=${enscribeChainId}`;
+  return `https://app.enscribe.xyz/nameContract?contract=${address}&chain=${enscribeChainId}`;
 };

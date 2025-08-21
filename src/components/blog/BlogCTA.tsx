@@ -88,7 +88,7 @@ export default function BlogCTA({
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Sparkles className="w-8 h-8 text-yellow-300" />
-            <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{title}</h2>
+            <h2 className="text-4xl md:text-3xl font-bold text-white tracking-tight">{title}</h2>
             <Sparkles className="w-8 h-8 text-yellow-300" />
           </div>
           <p className="text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">{description}</p>

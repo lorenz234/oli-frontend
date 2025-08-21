@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Search, Rss, BookOpen, Sparkles } from 'lucide-react';
+import { Search, BookOpen, Sparkles } from 'lucide-react';
 
 interface BlogHeaderProps {
   showSearch?: boolean;
@@ -26,7 +26,7 @@ export default function BlogHeader({ showSearch = true }: BlogHeaderProps) {
           </div>
           
           <div className="mb-6">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
+            <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">
               OLI Blog
             </h1>
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -47,18 +47,6 @@ export default function BlogHeader({ showSearch = true }: BlogHeaderProps) {
                   className="w-full sm:w-96 px-6 py-4 pl-12 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all duration-200"
                 />
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 group-focus-within:text-white transition-colors" />
-              </div>
-              
-              <div className="flex gap-3">
-                <Link
-                  href="/blog/rss.xml"
-                  className="inline-flex items-center px-6 py-4 bg-white/10 backdrop-blur-sm rounded-2xl text-white hover:bg-white/20 transition-all duration-200 border border-white/20 hover:border-white/30 font-medium"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Rss className="w-5 h-5 mr-2" />
-                  RSS Feed
-                </Link>
               </div>
             </div>
           )}

@@ -13,11 +13,11 @@ seo:
 
 ## The Peril of Blind Signing
 
-Blockchains are praised for their transparency, but this is often a dangerous illusion. We can see every transaction, but we cannot easily understand its _context_. This leads to "blind signing," a problem so pervasive that core infrastructure teams like Sourcify have called it "a bigger dragon than we can slay." [https://x.com/SourcifyEth/status/1902329967054401548](https://x.com/SourcifyEth/status/1902329967054401548). Users are asked to approve transactions without truly knowing who they're interacting with, or if it's safe.
+Blockchains are praised for their transparency, but this is often a dangerous illusion. We can see every transaction, but we cannot easily understand its _context_. This leads to "blind signing," a problem so pervasive that core infrastructure teams like Sourcify have called it ["a bigger dragon than we can slay."](https://x.com/SourcifyEth/status/1902329967054401548). Users are asked to approve transactions without truly knowing who they're interacting with, or if it's safe.
 
 Is the name `my-safe-protocol.eth` _actually_ owned and controlled by the contract it points to, or is its owner legit?
 
-Currently, many of the answers are locked in proprietary, siloed databases. As the Sourcify team noted, to solve this problem "once and for all, THE SOLUTION HAS TO BE OPEN." This is where the powerful synergy of three projects—the Ethereum Name Service (ENS), the Open Labels Initiative (OLI) and Enscribe—comes into play, creating a foundational stack for onchain trust.
+Currently, many of the answers are locked in proprietary, siloed databases. As the Sourcify team noted, to solve this problem "once and for all, THE SOLUTION HAS TO BE OPEN." This is where the powerful synergy of three projects—the Ethereum Name Service (ENS), the Open Labels Initiative (OLI) and [Enscribe](https://www.enscribe.xyz/)—comes into play, creating a foundational stack for onchain trust.
 
 ## Not All ENS Names Are Created Equal
 
@@ -52,7 +52,7 @@ Users and developers have an easy way to distinguish between a contract that has
 
 Identifying the problem is only half the battle. Enscribe provides the solution by eliminating the complexity of setting reverse ENS records for smart contracts.
 
-If OLI flags a contract for having a risky forward-resolved name (or no name at all), it now provides a direct link to Enscribe. Through a simple UI, developers can instantly and easily:
+If OLI flags a contract for having a risky forward-resolved name (or no name at all), it now provides a direct link to [Enscribe App](https://app.enscribe.xyz/). Through a simple UI, developers can instantly and easily:
 
 1. **Set the correct Primary Name** for their existing `Ownable` or `ERC-173` compatible contracts.
 2. **Secure their contract's onchain identity** in a single, streamlined transaction.

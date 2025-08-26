@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -29,7 +29,7 @@ const DocsLayout: React.FC = () => {
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [content, setContent] = useState<{ [key: string]: string }>({});
 
-  const sections: DocsSection[] = [
+  const sections: DocsSection[] = useMemo(() => [
     {
       id: 'overview',
       title: 'Overview',
@@ -54,7 +54,7 @@ const DocsLayout: React.FC = () => {
       description: 'Label Confidence & Trust Algorithms',
       githubUrl: 'https://raw.githubusercontent.com/openlabelsinitiative/OLI/main/3_label_confidence/README.md'
     }
-  ];
+  ], []);
 
   const fetchContent = useCallback(async (section: DocsSection) => {
     if (!section.githubUrl || content[section.id]) return;
@@ -85,7 +85,7 @@ const DocsLayout: React.FC = () => {
     if (currentSection && currentSection.githubUrl) {
       fetchContent(currentSection);
     }
-  }, [activeSection, fetchContent]);
+  }, [activeSection, fetchContent, sections]);
 
   // Process FAQ sections with details/summary tags
   const processFaqSections = (text: string): string => {

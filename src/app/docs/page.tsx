@@ -1,8 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import DocsLayout from '@/components/DocsLayout';
 
-export default function DocsPage() {
+function DocsContent() {
   return <DocsLayout />;
+}
+
+export default function DocsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DocsContent />
+    </Suspense>
+  );
 } 

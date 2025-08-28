@@ -4,7 +4,6 @@ import type { FC } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import TwitterEmbed from '../components/TwitterEmbed';
 
 // Interface for project types
 interface Project {
@@ -106,19 +105,12 @@ const HomePage: FC = () => {
               />
             </div>
             
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
-                Open Labels Initiative
-              </span>
-            </h1>
-            
             <p className="mt-6 max-w-md mx-auto text-xl text-gray-500 sm:text-2xl md:text-3xl md:max-w-4xl font-light leading-relaxed">
-              The missing epistemic layer for Web3
+              The missing context layer for Web3
             </p>
             
             <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
-              Making on-chain data understandable and safe through a unified standard, 
-              shared registry, and trust layer for EVM address labels.
+              A unified standard, shared registry, and trust layer for EVM address labels.
             </p>
             
             <div className="mt-8 mx-auto sm:flex sm:justify-center">
@@ -158,7 +150,7 @@ const HomePage: FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900">
-              Why OLI Matters: Fixing Web3&apos;s Context Crisis
+              Why OLI Matters?
             </h2>
             <p className="mt-4 max-w-3xl mx-auto text-xl text-gray-500">
               Blockchains are transparent, but they are not understandable
@@ -167,7 +159,7 @@ const HomePage: FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Problem Card 1 */}
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="bg-white border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
               <div className="text-red-600 mb-4">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -182,7 +174,7 @@ const HomePage: FC = () => {
             </div>
 
             {/* Problem Card 2 */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <div className="bg-white border border-purple-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
               <div className="text-yellow-600 mb-4">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -197,7 +189,7 @@ const HomePage: FC = () => {
             </div>
 
             {/* Problem Card 3 */}
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="bg-white border border-pink-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
               <div className="text-red-600 mb-4">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -233,6 +225,21 @@ const HomePage: FC = () => {
       <p className="mt-4 max-w-3xl mx-auto text-xl text-blue-100">
         OLI is built on three composable pillars that work together to create a rich and reliable data ecosystem
       </p>
+      
+      {/* Explainer Button */}
+      <div className="mt-8 flex justify-center">
+        <a
+          href="https://x.com/oli_labels/status/1855979653926510828"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center px-6 py-3 border-2 border-white font-medium rounded-xl text-white hover:bg-white hover:text-purple-600 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Watch 12-min Explainer
+        </a>
+      </div>
     </div>
     <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-3" style={{ gridAutoRows: '1fr' }}>
       {/* Data Model Pillar */}
@@ -245,8 +252,8 @@ const HomePage: FC = () => {
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">OLI Spec</h3>
-              <p className="text-sm text-gray-600 font-medium">A Common Language for Labels</p>
+              <h3 className="text-xl font-semibold text-gray-900">Label Schema</h3>
+              <p className="text-sm text-gray-600 font-medium">Data Model & Tag Definitions</p>
               <div className="flex mt-1 space-x-2">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                  standard
@@ -260,7 +267,7 @@ const HomePage: FC = () => {
           <p className="mt-2 text-base text-gray-500 mb-6 flex-grow">
             The foundation—a shared data model and taxonomy for labels. An open, versioned standard that ensures everyone speaks the same language, making on-chain labels truly composable.
           </p>
-          <Link href="/docs?section=data-model" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
+          <Link href="/docs?section=label-schema" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
             View documentation
             <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -279,8 +286,8 @@ const HomePage: FC = () => {
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">OLI Registry</h3>
-              <p className="text-sm text-gray-600 font-medium">A Shared Pool for On-Chain Data</p>
+              <h3 className="text-xl font-semibold text-gray-900">Label Pool</h3>
+              <p className="text-sm text-gray-600 font-medium">Label Pool & Data Entry</p>
               <div className="flex mt-1 space-x-2">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   decentralized
@@ -295,7 +302,7 @@ const HomePage: FC = () => {
             </div>
           </div>
           <p className="mt-2 text-base text-gray-500 mb-6 flex-grow">
-            Built on the Spec, the Registry is a decentralized, on-chain database powered by EAS. The central hub where you contribute once, and your labels are seen everywhere.
+            Built on the Label Schema, the Label Pool is a decentralized, on-chain database powered by EAS. The central hub where you contribute once, and your labels are seen everywhere.
           </p>
           <Link href="/docs?section=label-pool" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
             View documentation
@@ -316,8 +323,8 @@ const HomePage: FC = () => {
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">OLI Trust</h3>
-              <p className="text-sm text-gray-600 font-medium">A Confidence Layer for Labels</p>
+              <h3 className="text-xl font-semibold text-gray-900">Label Trust</h3>
+              <p className="text-sm text-gray-600 font-medium">Label Confidence & Trust Algorithms</p>
               <div className="flex mt-1 space-x-2">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
                   algorithms
@@ -334,7 +341,7 @@ const HomePage: FC = () => {
           <p className="mt-2 text-base text-gray-500 mb-6 flex-grow">
             An optional, sophisticated algorithmic layer that turns raw, crowd-sourced labels into reliable, production-ready signals by analyzing source diversity and attestor reputation.
           </p>
-          <Link href="/docs?section=label-confidence" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
+          <Link href="/docs?section=label-trust" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
             View documentation
             <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -343,6 +350,25 @@ const HomePage: FC = () => {
         </div>
       </div>
     </div>
+    {/* FAQ Section */}
+    <div className="mt-6 text-center">
+        <h3 className="text-xl font-semibold text-white mb-2">Still have questions?</h3>
+        <Link
+          href="/docs?section=overview"
+          className="inline-flex items-center justify-center px-12 py-4 bg-white text-purple-600 font-semibold rounded-lg hover:bg-gray-50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl min-w-80"
+          onClick={() => {
+            // Set a flag in sessionStorage to scroll to FAQ after navigation
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('scrollToFAQ', 'true');
+            }
+          }}
+        >
+          <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          View Frequently Asked Questions
+        </Link>
+      </div>
   </div>
 </div>
 
@@ -357,6 +383,77 @@ const HomePage: FC = () => {
             <p className="mt-4 max-w-3xl mx-auto text-xl text-gray-500">
               OLI is built to be used. Find and share contract labels once, and use them everywhere.
             </p>
+          </div>
+
+          {/* Foundation Card - Label Schema */}
+          <div className="mb-8">
+            <div className="bg-white rounded-xl shadow-lg border-2 border-indigo-200 p-8 text-center relative overflow-hidden">
+              {/* Background pattern */}
+              <div className="absolute inset-0 opacity-5">
+                <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-indigo-400"></div>
+                <div className="absolute -bottom-12 -left-12 w-24 h-24 rounded-full bg-purple-500"></div>
+              </div>
+              
+              <div className="relative z-10">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-6">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">Adopt the Label Schema</h3>
+                <p className="text-xl text-indigo-600 font-medium mb-6">🏗️ The Foundation for Everyone</p>
+                
+                <p className="text-gray-700 mb-6 max-w-3xl mx-auto leading-relaxed">
+                  Whether you&apos;re consuming labels, producing labels, or building community tools, everything starts with understanding the OLI Label Schema. This is your essential first step.
+                </p>
+                
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-indigo-500 mr-2">✓</span>
+                    Standardized data model
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-indigo-500 mr-2">✓</span>
+                    Community-driven taxonomy
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-indigo-500 mr-2">✓</span>
+                    Tag definitions & patterns
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="text-indigo-500 mr-2">✓</span>
+                    Ecosystem compatibility
+                  </div>
+                  
+                </div>
+                
+                <a
+                  href="/docs?section=label-schema"
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl text-lg"
+                >
+                  🚀 Start with Label Schema
+                  <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Connection Arrow */}
+          <div className="text-center mb-8">
+            <div className="inline-flex flex-col items-center">
+              <div className="w-px h-8 bg-gradient-to-b from-indigo-300 to-purple-400"></div>
+              <div className="bg-white border-2 border-indigo-200 rounded-full p-2 mb-2">
+                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-full border border-gray-200">
+                Then choose your path
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" style={{ gridAutoRows: '1fr' }}>
@@ -375,7 +472,7 @@ const HomePage: FC = () => {
               </div>
               <div className="flex-grow">
                 <p className="text-gray-600 mb-4">
-                  Stop decoding hex addresses. Integrate the OLI Registry to provide your users with rich context and security warnings.
+                  Stop dealing with hex addresses. Integrate the Label Pool to provide your users with rich context about addresses and security warnings.
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600 mb-4">
                 <li className="flex items-start">
@@ -388,7 +485,7 @@ const HomePage: FC = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">•</span>
-                  Protect users with OLI Trust layer
+                  Browse and search label coverage and request labels
                 </li>
                 </ul>
               </div>
@@ -455,7 +552,7 @@ const HomePage: FC = () => {
               </div>
               <div className="flex-grow">
                 <p className="text-gray-600 mb-4">
-                  The OLI Registry is a public good, owned by the community. Your expertise is critical to its success.
+                  The Label Pool is a public good, owned by the community. Your expertise is critical to its success.
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600 mb-4">
                 <li className="flex items-start">
@@ -468,7 +565,7 @@ const HomePage: FC = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="text-purple-500 mr-2">•</span>
-                  Join governance and shape the future
+                  Join governance and contribute to the discussions
                 </li>
                 </ul>
               </div>
@@ -483,22 +580,6 @@ const HomePage: FC = () => {
         </div>
       </div>
 
-      {/* Video Section */}
-      <div className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-gray-900">
-              Watch Our Explainer
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-              Learn everything about the Open Labels Initiative in just 12 minutes
-            </p>
-          </div>
-  
-          <TwitterEmbed />
-          
-        </div>
-      </div>
 
     {/* Call to Action Section */}
     <div className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 py-16">

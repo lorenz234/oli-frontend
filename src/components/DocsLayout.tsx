@@ -21,7 +21,7 @@ const DocsLayout: React.FC = () => {
   
   const [activeSection, setActiveSection] = useState(
     // Use the section from URL params if valid, otherwise default to 'overview'
-    sectionParam && ['overview', 'data-model', 'label-pool', 'label-confidence'].includes(sectionParam)
+    sectionParam && ['overview', 'label-schema', 'label-pool', 'label-trust'].includes(sectionParam)
       ? sectionParam
       : 'overview'
   );
@@ -37,20 +37,20 @@ const DocsLayout: React.FC = () => {
       githubUrl: 'https://raw.githubusercontent.com/openlabelsinitiative/OLI/main/README.md'
     },
     {
-      id: 'data-model',
-      title: 'OLI Spec',
+      id: 'label-schema',
+      title: 'Label Schema',
       description: 'Data Model & Tag Definitions',
       component: TagDocumentation
     },
     {
       id: 'label-pool',
-      title: 'OLI Registry',
+      title: 'Label Pool',
       description: 'Label Pool & Data Entry',
       githubUrl: 'https://raw.githubusercontent.com/openlabelsinitiative/OLI/main/2_label_pool/README.md'
     },
     {
-      id: 'label-confidence',
-      title: 'OLI Trust',
+      id: 'label-trust',
+      title: 'Label Trust',
       description: 'Label Confidence & Trust Algorithms',
       githubUrl: 'https://raw.githubusercontent.com/openlabelsinitiative/OLI/main/3_label_confidence/README.md'
     }
@@ -86,6 +86,54 @@ const DocsLayout: React.FC = () => {
       fetchContent(currentSection);
     }
   }, [activeSection, fetchContent, sections]);
+
+  // Handle FAQ scrolling after content loads
+  useEffect(() => {
+    if (content[activeSection] && activeSection === 'overview') {
+      // Check if we should scroll to FAQ
+      const shouldScrollToFAQ = typeof window !== 'undefined' && sessionStorage.getItem('scrollToFAQ');
+      
+      if (shouldScrollToFAQ) {
+        // Clear the flag
+        sessionStorage.removeItem('scrollToFAQ');
+        
+        // Wait for content to render, then scroll to FAQ
+        setTimeout(() => {
+          // Try multiple selectors to find the FAQ section
+          const faqSelectors = [
+            'h1[id*="frequently-asked-questions"]',
+            'h2[id*="frequently-asked-questions"]', 
+            'h1[id*="faq"]',
+            'h2[id*="faq"]',
+            '[id*="frequently-asked-questions"]',
+            '.custom-faq-container'
+          ];
+          
+          let faqElement = null;
+          for (const selector of faqSelectors) {
+            faqElement = document.querySelector(selector);
+            if (faqElement) break;
+          }
+          
+          // If we still can't find it, try text-based search
+          if (!faqElement) {
+            const headings = document.querySelectorAll('h1, h2, h3');
+            for (const heading of headings) {
+              if (heading.textContent?.toLowerCase().includes('frequently asked questions') || 
+                  heading.textContent?.toLowerCase().includes('faq')) {
+                faqElement = heading;
+                break;
+              }
+            }
+          }
+          
+          if (faqElement) {
+            faqElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 1000); // Wait 1 second for content to render
+      }
+    }
+  }, [content, activeSection]);
 
   // Process FAQ sections with details/summary tags
   const processFaqSections = (text: string): string => {

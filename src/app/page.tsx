@@ -533,9 +533,8 @@ const HomePage: FC = () => {
             Supported By
           </h2>
           <div className="grid grid-cols-2 gap-8 md:grid-cols-2">
-            {/* Temporarily hidden until confirmation
             <div className="col-span-1 flex flex-col items-center">
-              <p className="text-gray-600 mb-2 mr-8">Grant from</p>
+              <p className="text-gray-600 mb-2 mr-4">Grant from</p>
               <Image
                 src="/EF-ESP-logo.svg"
                 alt="Ethereum Support Program"
@@ -545,8 +544,7 @@ const HomePage: FC = () => {
                 onClick={() => window.open('https://esp.ethereum.foundation/', '_blank')}
               />
             </div>
-            */}
-            <div className="col-span-2 flex justify-center">
+            <div className="col-span-1 flex justify-center">
                 <Image
                     src="/growthepie-logo-dot-com.svg"
                     alt="growthepie"

@@ -447,6 +447,23 @@ export const CHAINS: ChainMetadata[] = [
     description: 'Zircuit is a Layer 2 solution designed to scale Ethereum by providing lower transaction fees and faster confirmation times while maintaining security.'
   },
   {
+    id: 'starknet',
+    name: 'Starknet',
+    shortName: 'Starknet',
+    caip2: 'SN_MAIN',
+    colors: {
+      light: ['#EC796B', '#EC796B'],
+      dark: ['#EC796B', '#EC796B'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<path d="M7.48 0.28C7.22 0.28 6.97 0.38 6.77 0.57L0.57 6.77C0.20 7.14 0.20 7.75 0.57 8.12L6.77 14.32C6.97 14.51 7.22 14.61 7.48 14.61C7.74 14.61 7.99 14.51 8.19 14.32L14.39 8.12C14.76 7.75 14.76 7.14 14.39 6.77L8.19 0.57C7.99 0.38 7.74 0.28 7.48 0.28ZM7.48 2.36L12.31 7.19H10.64L8.26 4.81C8.07 4.62 7.89 4.62 7.70 4.81L5.32 7.19H3.65L7.48 2.36ZM7.48 12.53L3.65 7.70H5.32L7.70 10.08C7.89 10.27 8.07 10.27 8.26 10.08L10.64 7.70H12.31L7.48 12.53Z" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Starknet is a permissionless Layer 2 ZK-rollup that operates as a validity-rollup, using STARK proofs and the Cairo programming language.'
+  },
+  {
     id: 'any',
     name: 'Any EVM Chain',
     shortName: 'Any EVM Chain',

@@ -13,7 +13,7 @@ import { CHAIN_OPTIONS } from '../../constants/chains';
 import { SCHEMA_UID } from '../../constants/eas';
 import { VALID_CATEGORY_IDS } from '../../constants/categories';
 import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
-import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
+import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS, canUseSponsoredTransaction, createSponsoredBulkAttestation } from '../../utils/attestationUtils';
 import { NotificationType, ConfirmationData, RowData, ColumnDefinition, AttestationResult, FieldValue, ValidationWarning } from '../../types/attestation';
 import { parseAndCleanCsv } from '../../utils/csvUtils';
 import { formFields } from '../../constants/formFields';
@@ -23,6 +23,10 @@ import { validateCategoryField } from '../../utils/categoryValidation';
 import { validatePaymasterField } from '../../utils/paymasterValidation';
 import OwnerProjectInput from './OwnerProjectInput';
 import { CHAINS } from '../../constants/chains';
+
+// Dynamic wallet integration
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { isEthereumWallet } from '@dynamic-labs/ethereum';
 
 
 
@@ -83,6 +87,9 @@ const BASE_COLUMNS: ColumnDefinition[] = [
 
 const BulkAttestationForm: React.FC = () => {
   const [rows, setRows] = useState<RowData[]>([{ ...EMPTY_ROW }]);
+  
+  // Dynamic wallet integration
+  const { user, primaryWallet } = useDynamicContext();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<NotificationType | null>(null);
@@ -567,8 +574,24 @@ const BulkAttestationForm: React.FC = () => {
       return;
     }
 
-    if (!window.ethereum) {
+    // Debug: Log connection state
+    console.log('Dynamic connection state (bulk):', {
+      user: !!user,
+      primaryWallet: !!primaryWallet,
+      walletAddress: primaryWallet?.address,
+      walletConnector: primaryWallet?.connector?.name
+    });
+
+    // Check if Dynamic wallet is connected (in connect-only mode, user might be null)
+    if (!primaryWallet) {
+      console.error('Wallet connection check failed (bulk):', { user: !!user, primaryWallet: !!primaryWallet });
       showNotification("Please connect your wallet first", "error");
+      return;
+    }
+
+    // Verify it's an Ethereum wallet
+    if (!isEthereumWallet(primaryWallet)) {
+      showNotification("Please connect an Ethereum wallet", "error");
       return;
     }
 
@@ -585,21 +608,24 @@ const BulkAttestationForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Check if ethereum is available
-      if (!window.ethereum) {
+      // Check if Dynamic wallet is connected (in connect-only mode, user might be null)
+      if (!primaryWallet) {
         showNotification("Please connect your wallet first", "error");
         setIsSubmitting(false);
         return;
       }
 
-      // Switch to Base network
-      await switchToBaseNetwork(window.ethereum);
+      // Verify it's an Ethereum wallet
+      if (!isEthereumWallet(primaryWallet)) {
+        showNotification("Please connect an Ethereum wallet", "error");
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Initialize EAS
-      const { eas } = await initializeEAS(window.ethereum);
+      // Switch to Base network using Dynamic
+      await switchToBaseNetwork(primaryWallet);
 
-      // Use multiAttest to submit all attestations in a single transaction
-      // Prepare attestation data for multiAttest
+      // Prepare attestation data
       interface AttestationData {
         recipient: string;
         expirationTime: bigint;
@@ -634,20 +660,64 @@ const BulkAttestationForm: React.FC = () => {
       }
 
       console.log("Attestations data:", attestationsData);
-      
-      // Submit all attestations in a single transaction
-      const tx = await eas.multiAttest([
-        {
-          schema: SCHEMA_UID,
-          data: attestationsData,
+
+      // Check if we can use sponsored transactions
+      const canUseSponsored = await canUseSponsoredTransaction(primaryWallet);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Can use sponsored bulk transaction:', canUseSponsored);
+      }
+
+      let attestationUIDs;
+
+      if (canUseSponsored) {
+        try {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Attempting sponsored bulk transaction...');
+          }
+          // Try sponsored bulk transaction first
+          const result = await createSponsoredBulkAttestation(
+            primaryWallet,
+            attestationsData,
+            SCHEMA_UID
+          );
+          
+          attestationUIDs = result; // This might be different format for sponsored tx
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Sponsored bulk transaction successful:', result);
+          }
+        } catch (sponsoredError) {
+          console.warn('Sponsored bulk transaction failed, falling back to regular transaction:', sponsoredError);
+          
+          // Fall back to regular transaction
+          const { eas } = await initializeEAS(primaryWallet);
+          const tx = await eas.multiAttest([
+            {
+              schema: SCHEMA_UID,
+              data: attestationsData,
+            }
+          ]);
+          
+          console.log("Regular transaction:", tx);
+          attestationUIDs = await tx.wait();
+          console.log("Transaction receipt:", tx.receipt);
         }
-      ]);
-
-      console.log("Transaction:", tx);
-
-      // Wait for transaction confirmation
-      const attestationUIDs = await tx.wait();
-      console.log("Transaction receipt:", tx.receipt);
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Using regular bulk transaction...');
+        }
+        // Use regular transaction
+        const { eas } = await initializeEAS(primaryWallet);
+        const tx = await eas.multiAttest([
+          {
+            schema: SCHEMA_UID,
+            data: attestationsData,
+          }
+        ]);
+        
+        console.log("Regular transaction:", tx);
+        attestationUIDs = await tx.wait();
+        console.log("Transaction receipt:", tx.receipt);
+      }
       
       // Create results array for user feedback
       const results: AttestationResult[] = attestationUIDs.map((uid: string, index: number) => ({
@@ -667,7 +737,20 @@ const BulkAttestationForm: React.FC = () => {
 
     } catch (error: any) {
       console.error('Error submitting attestations:', error);
-      showNotification(error.message || "Failed to submit attestations", "error");
+      
+      // Handle specific error types
+      let errorMessage = "Failed to submit attestations";
+      if (error.message?.includes('User rejected')) {
+        errorMessage = "Transaction was rejected by user";
+      } else if (error.message?.includes('network')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes('gas')) {
+        errorMessage = "Insufficient gas or gas estimation failed";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1164,7 +1247,20 @@ const BulkAttestationForm: React.FC = () => {
           />
         )}
 
-        <div className="border-t border-gray-200">
+        <div className={`transition-colors duration-300 ${
+          (() => {
+            const hasErrors = Object.keys(errors).length > 0;
+            const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+              warningList.some(w => !w.isConversion)
+            );
+            const isValidated = !hasErrors && !hasRealWarnings && isValidationMode;
+            // Only add border-t if validation summary is not showing (to avoid double border)
+            const hasBorderTop = !showValidationSummary || (showValidationSummary && (hasErrors || hasRealWarnings));
+            return `${hasBorderTop ? 'border-t' : ''} ${isValidated 
+              ? 'border-green-200' 
+              : 'border-gray-200'}`;
+          })()
+        }`}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
@@ -1172,7 +1268,18 @@ const BulkAttestationForm: React.FC = () => {
                   {activeColumns.map((column) => (
                     <th
                       key={column.id}
-                      className="bg-gray-50 px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group"
+                      className={`px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group transition-colors duration-300 ${
+                        (() => {
+                          const hasErrors = Object.keys(errors).length > 0;
+                          const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                            warningList.some(w => !w.isConversion)
+                          );
+                          const isValidated = !hasErrors && !hasRealWarnings && isValidationMode;
+                          return isValidated 
+                            ? 'bg-green-50' 
+                            : 'bg-gray-50';
+                        })()
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-1">
@@ -1194,14 +1301,47 @@ const BulkAttestationForm: React.FC = () => {
                       </div>
                     </th>
                   ))}
-                  <th className="w-10 bg-gray-50 px-3 py-3.5" />
+                  <th className={`w-10 px-3 py-3.5 transition-colors duration-300 ${
+                    (() => {
+                      const hasErrors = Object.keys(errors).length > 0;
+                      const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                        warningList.some(w => !w.isConversion)
+                      );
+                      const isValidated = !hasErrors && !hasRealWarnings && isValidationMode;
+                      return isValidated 
+                        ? 'bg-green-50' 
+                        : 'bg-gray-50';
+                    })()
+                  }`} />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className={`divide-y divide-gray-200 transition-colors duration-300 ${
+                (() => {
+                  const hasErrors = Object.keys(errors).length > 0;
+                  const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                    warningList.some(w => !w.isConversion)
+                  );
+                  const isValidated = !hasErrors && !hasRealWarnings && isValidationMode;
+                  return isValidated 
+                    ? 'bg-green-25' 
+                    : 'bg-white';
+                })()
+              }`}>
                 {rows.map((row, rowIndex) => (
                   <tr 
                     key={rowIndex} 
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`transition-colors ${
+                      (() => {
+                        const hasErrors = Object.keys(errors).length > 0;
+                        const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                          warningList.some(w => !w.isConversion)
+                        );
+                        const isValidated = !hasErrors && !hasRealWarnings && isValidationMode;
+                        return isValidated 
+                          ? 'hover:bg-green-50' 
+                          : 'hover:bg-gray-50';
+                      })()
+                    }`}
                     data-row-index={rowIndex}
                   >
                     {activeColumns.map((column) => renderTableCell(column, row, rowIndex))}
@@ -1233,20 +1373,35 @@ const BulkAttestationForm: React.FC = () => {
                   warningList.some(w => !w.isConversion)
                 );
                 const hasIssues = hasErrors || hasRealWarnings;
+                const isValidated = !hasIssues && isValidationMode;
                 
                 return hasIssues 
                   ? "flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg hover:from-amber-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
-                  : "flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]";
+                  : `flex justify-center items-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] relative overflow-hidden ${isValidated ? 'animate-pulse-glow' : ''}`;
               })()}
             >
+              {/* Glare effect when validated */}
+              {(() => {
+                const hasErrors = Object.keys(errors).length > 0;
+                const hasRealWarnings = Object.entries(warnings).some(([, warningList]) => 
+                  warningList.some(w => !w.isConversion)
+                );
+                const hasIssues = hasErrors || hasRealWarnings;
+                const isValidated = !hasIssues && isValidationMode;
+                
+                return isValidated ? (
+                  <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 animate-glare-sweep"></div>
+                ) : null;
+              })()}
+              
               {isSubmitting ? (
-                <>
+                <div className="relative z-10 flex items-center">
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Submitting...
-                </>
+                </div>
               ) : (
                 (() => {
                   const hasErrors = Object.keys(errors).length > 0;
@@ -1256,17 +1411,17 @@ const BulkAttestationForm: React.FC = () => {
                   const hasIssues = hasErrors || hasRealWarnings;
                   
                   return hasIssues ? (
-                    <>
+                    <div className="relative z-10 flex items-center">
                       <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Validate Values
-                    </>
+                    </div>
                   ) : (
-                    <>
+                    <div className="relative z-10 flex items-center">
                       <Save className="h-4 w-4 mr-2" />
                       Create Bulk Attestations
-                    </>
+                    </div>
                   );
                 })()
               )}

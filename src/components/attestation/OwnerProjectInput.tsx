@@ -30,12 +30,12 @@ const OwnerProjectInput = memo<OwnerProjectInputProps>(({
         list="valid-projects"
       />
       {isLoadingProjects ? (
-        <div className="absolute right-8 top-1/2 -translate-y-1/2">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
           <div className="animate-spin h-4 w-4 border-2 border-indigo-500 rounded-full border-t-transparent" />
         </div>
       ) : (
         hasExactMatch && (
-          <div className="absolute right-8 top-1/2 -translate-y-1/2 text-green-500">✓</div>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">✓</div>
         )
       )}
       <datalist id="valid-projects">

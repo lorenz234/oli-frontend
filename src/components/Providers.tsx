@@ -1,7 +1,7 @@
 'use client';
 
 import { ApolloProvider } from '@apollo/client';
-import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
+import { DynamicContextProvider, DynamicUserProfile } from '@dynamic-labs/sdk-react-core';
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
 import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
 import { createConfig, WagmiProvider } from 'wagmi';
@@ -10,13 +10,13 @@ import { http } from 'viem';
 import { mainnet, base, linea, arbitrum, optimism } from 'viem/chains';
 import client from '@/lib/apollo-client';
 
-// Create Wagmi config
+// Create Wagmi config with Base as primary network for OLI attestations
 const config = createConfig({
-  chains: [mainnet, base, linea, arbitrum, optimism],
+  chains: [base, mainnet, linea, arbitrum, optimism], // Base first - primary network for OLI
   multiInjectedProviderDiscovery: false,
   transports: {
+    [base.id]: http(process.env.NEXT_PUBLIC_COINBASE_PAYMASTER_URL || 'https://api.developer.coinbase.com/rpc/v1/base/hyKHUTPE7kd0VnvFqYsMiAUjvg1wshR3'),
     [mainnet.id]: http(),
-    [base.id]: http(),
     [linea.id]: http(),
     [arbitrum.id]: http(),
     [optimism.id]: http(),
@@ -36,6 +36,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         walletConnectors: [EthereumWalletConnectors],
         
         // Recommend Coinbase Smart Wallet (prioritizes it in the list)
+        // Coinbase Smart Wallet provides sponsored transactions on Base network
         recommendedWallets: [
           { walletKey: 'coinbase' },
         ],
@@ -48,9 +49,24 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           },
         },
         
-        // Configure supported networks including Base
+        // Configure supported networks with Base as primary for OLI attestations
         overrides: {
           evmNetworks: [
+            {
+              blockExplorerUrls: ['https://basescan.org/'],
+              chainId: 8453,
+              chainName: 'Base',
+              iconUrls: ['https://app.dynamic.xyz/assets/networks/base.svg'],
+              name: 'Base',
+              nativeCurrency: {
+                decimals: 18,
+                name: 'Ether',
+                symbol: 'ETH',
+              },
+              networkId: 8453,
+              rpcUrls: [process.env.NEXT_PUBLIC_COINBASE_PAYMASTER_URL || 'https://api.developer.coinbase.com/rpc/v1/base/hyKHUTPE7kd0VnvFqYsMiAUjvg1wshR3'], // Your paymaster URL
+              vanityName: 'Base',
+            },
             {
               blockExplorerUrls: ['https://etherscan.io/'],
               chainId: 1,
@@ -65,21 +81,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
               networkId: 1,
               rpcUrls: ['https://rpc.mevblocker.io/fast'],
               vanityName: 'Ethereum',
-            },
-            {
-              blockExplorerUrls: ['https://basescan.org/'],
-              chainId: 8453,
-              chainName: 'Base',
-              iconUrls: ['https://app.dynamic.xyz/assets/networks/base.svg'],
-              name: 'Base',
-              nativeCurrency: {
-                decimals: 18,
-                name: 'Ether',
-                symbol: 'ETH',
-              },
-              networkId: 8453,
-              rpcUrls: ['https://api.developer.coinbase.com/rpc/v1/base/hyKHUTPE7kd0VnvFqYsMiAUjvg1wshR3'], // Your paymaster URL
-              vanityName: 'Base',
             },
             {
               blockExplorerUrls: ['https://lineascan.build/'],
@@ -133,7 +134,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         appName: 'Open Labels Initiative',
         appLogoUrl: 'https://openlabelsinitiative.org/oli-logo.png',
         
-        // Default to Base network for Smart Wallet compatibility
+        // Default to Base network for OLI attestations
         initialAuthenticationMode: 'connect-only',
         
         // Privacy settings - minimal data collection
@@ -145,6 +146,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           <DynamicWagmiConnector>
             <ApolloProvider client={client}>
               {children}
+              <DynamicUserProfile />
             </ApolloProvider>
           </DynamicWagmiConnector>
         </QueryClientProvider>

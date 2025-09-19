@@ -13,6 +13,13 @@ export interface BlogPost {
   excerpt: string;
   date: string;
   author: string;
+  authorSocial?: {
+    twitter?: string;
+    discord?: string;
+    farcaster?: string;
+    telegram?: string;
+    website?: string;
+  };
   tags: string[];
   featured: boolean;
   readingTime: number;
@@ -63,6 +70,7 @@ export function getBlogPostMeta(slug: string): BlogPostMeta | null {
       excerpt: data.excerpt || '',
       date: data.date || '',
       author: data.author || 'Anonymous',
+      authorSocial: data.authorSocial || {},
       tags: data.tags || [],
       featured: data.featured || false,
       readingTime: data.readingTime || Math.ceil(readingTimeResult.minutes),
@@ -107,6 +115,7 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
       excerpt: data.excerpt || '',
       date: data.date || '',
       author: data.author || 'Anonymous',
+      authorSocial: data.authorSocial || {},
       tags: data.tags || [],
       featured: data.featured || false,
       readingTime: data.readingTime || Math.ceil(readingTimeResult.minutes),
@@ -222,11 +231,16 @@ export function generateBlogPostStructuredData(post: BlogPost, baseUrl: string) 
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.excerpt,
-    image: `${baseUrl}/og-image.png`, // Default OG image
+    image: {
+      '@type': 'ImageObject',
+      url: `${baseUrl}/og-image.png`,
+      width: 1200,
+      height: 630,
+    },
     datePublished: post.date,
     dateModified: post.date, // Could be enhanced with lastModified
     author: {
-      '@type': 'Organization',
+      '@type': 'Person',
       name: post.author,
     },
     publisher: {
@@ -235,13 +249,20 @@ export function generateBlogPostStructuredData(post: BlogPost, baseUrl: string) 
       logo: {
         '@type': 'ImageObject',
         url: `${baseUrl}/oli-logo.png`,
+        width: 200,
+        height: 200,
       },
+      url: baseUrl,
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': `${baseUrl}${getBlogPostUrl(post.slug)}`,
     },
     keywords: post.seo.keywords?.join(', ') || post.tags.join(', '),
+    articleSection: post.tags[0] || 'Blog', // Primary category
+    wordCount: Math.ceil(post.content.split(' ').length), // Estimated word count
+    inLanguage: 'en-US',
+    url: `${baseUrl}${getBlogPostUrl(post.slug)}`,
   };
 }
 

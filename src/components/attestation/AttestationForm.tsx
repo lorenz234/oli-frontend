@@ -14,7 +14,12 @@ import { TAG_DESCRIPTIONS } from '../../constants/tagDescriptions';
 import { SCHEMA_UID } from '../../constants/eas';
 import { formFields, initialFormState } from '../../constants/formFields';
 import { FormMode, FieldValue, NotificationType, ConfirmationData } from '../../types/attestation';
-import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS } from '../../utils/attestationUtils';
+import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS, canUseSponsoredTransaction, createSponsoredAttestation } from '../../utils/attestationUtils';
+
+// Dynamic wallet integration
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { isEthereumWallet } from '@dynamic-labs/ethereum';
+import { useDynamicSponsorship } from '../../hooks/useDynamicSponsorship';
 
 // Define FormDataState type that extends initialFormState with an index signature
 type FormDataState = typeof initialFormState & {
@@ -32,6 +37,10 @@ interface AttestationFormProps {
 
 const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, prefilledChainId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Dynamic wallet integration
+  const { user, primaryWallet } = useDynamicContext();
+  const { capabilities, getSponsorshipMessage } = useDynamicSponsorship();
   const [notification, setNotification] = useState<NotificationType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmationData, setConfirmationData] = useState<ConfirmationData | null>(null);
@@ -70,44 +79,123 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
   const submitAttestation = async () => {
     // Create tags_json object
     const tagsObject = prepareTags(formData);
-    console.log('Tags object:', tagsObject);
+    // Debug: Log tags object (development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Tags object:', tagsObject);
+    }
 
     const encodedData = prepareEncodedData(formData.chain_id as string, tagsObject);
 
-    if (!window.ethereum) {
+    // Debug: Log connection state and sponsorship capabilities (development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dynamic connection state:', {
+        user: !!user,
+        primaryWallet: !!primaryWallet,
+        walletAddress: primaryWallet?.address ? `${primaryWallet.address.slice(0, 6)}...${primaryWallet.address.slice(-4)}` : null,
+        walletConnector: primaryWallet?.connector?.name,
+        sponsorshipCapabilities: capabilities,
+        sponsorshipMessage: getSponsorshipMessage()
+      });
+    }
+
+    // Check if Dynamic wallet is connected (in connect-only mode, user might be null)
+    if (!primaryWallet) {
+      console.error('Wallet connection check failed:', { user: !!user, primaryWallet: !!primaryWallet });
       showNotification("Please connect your wallet first", "error");
       return;
     }
 
+    // Verify it's an Ethereum wallet
+    if (!isEthereumWallet(primaryWallet)) {
+      showNotification("Please connect an Ethereum wallet", "error");
+      return;
+    }
+
     try {
-      // Switch to Base network
-      await switchToBaseNetwork(window.ethereum);
+      // Switch to Base network using Dynamic
+      await switchToBaseNetwork(primaryWallet);
 
-      // Initialize EAS
-      const { eas } = await initializeEAS(window.ethereum);
+      // Check if we can use sponsored transactions
+      const canUseSponsored = await canUseSponsoredTransaction(primaryWallet);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Can use sponsored transaction:', canUseSponsored);
+      }
 
-      /// Submit the attestation
-      const tx = await eas.attest({
-        schema: SCHEMA_UID,
-        data: {
-          recipient: formData.address as string,
-          expirationTime: BigInt(0), // Using BigInt instead of 0n
-          revocable: true,
-          data: encodedData,
-        },
-      });
+      let newAttestationUID;
 
-      // Wait for the transaction
-      const newAttestationUID = await tx.wait();
+      if (canUseSponsored) {
+        try {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Attempting sponsored transaction...');
+          }
+          // Try sponsored transaction first
+          const result = await createSponsoredAttestation(primaryWallet, {
+            schema: SCHEMA_UID,
+            recipient: formData.address as string,
+            expirationTime: BigInt(0),
+            revocable: true,
+            data: encodedData,
+          });
+          
+          newAttestationUID = result; // This might be different format for sponsored tx
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Sponsored transaction successful:', result);
+          }
+        } catch (sponsoredError) {
+          console.warn('Sponsored transaction failed, falling back to regular transaction:', sponsoredError);
+          
+          // Fall back to regular transaction
+          const { eas } = await initializeEAS(primaryWallet);
+          const tx = await eas.attest({
+            schema: SCHEMA_UID,
+            data: {
+              recipient: formData.address as string,
+              expirationTime: BigInt(0),
+              revocable: true,
+              data: encodedData,
+            },
+          });
+          newAttestationUID = await tx.wait();
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Using regular transaction (sponsorship not available)');
+        }
+        // Use regular transaction
+        const { eas } = await initializeEAS(primaryWallet);
+        const tx = await eas.attest({
+          schema: SCHEMA_UID,
+          data: {
+            recipient: formData.address as string,
+            expirationTime: BigInt(0),
+            revocable: true,
+            data: encodedData,
+          },
+        });
+        newAttestationUID = await tx.wait();
+      }
 
-      showNotification(`Attestation created successfully! UID: ${newAttestationUID}`);
+      showNotification(`Attestation created successfully! UID: ${newAttestationUID}`, "success");
 
       // Reset form
       setFormData(initialFormState);
 
     } catch (error: any) {
       console.error('Error submitting attestation:', error);
-      showNotification(error.message || "Failed to submit attestation", "error");
+      
+      // Handle specific error types
+      let errorMessage = "Failed to submit attestation";
+      if (error.message?.includes('User rejected')) {
+        errorMessage = "Transaction was rejected by user";
+      } else if (error.message?.includes('network')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes('gas')) {
+        errorMessage = "Insufficient gas or gas estimation failed";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -470,6 +558,15 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
         `}</style>
         
         {getVisibleFields().map(renderField)}
+
+        {/* Sponsorship Status */}
+        {primaryWallet && (
+          <div className="text-center py-2">
+            <span className={`text-sm ${capabilities.canSponsorTransactions ? 'text-green-600' : 'text-gray-600'}`}>
+              {getSponsorshipMessage()}
+            </span>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div>

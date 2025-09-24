@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import WalletConnect from './WalletConnect';
+import WalletManager from './WalletManager';
 
 interface NavLink {
   href: string;
@@ -142,6 +142,26 @@ const Navigation: React.FC = () => {
       )
     },
     {
+      href: "/blog",
+      label: "Blog",
+      icon: (
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          className="h-4 w-4 mr-1" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+          />
+        </svg>
+      )
+    },
+    {
       href: "/docs",
       label: "Documentation",
       icon: (
@@ -190,7 +210,7 @@ const Navigation: React.FC = () => {
 
           {/* Desktop Wallet Connect */}
           <div className="hidden md:flex items-center">
-            <WalletConnect />
+            <WalletManager />
           </div>
 
           {/* Mobile menu button */}
@@ -269,7 +289,7 @@ const Navigation: React.FC = () => {
         <div className="pt-4 pb-3 border-t border-gray-200">
           <div className="flex items-center px-4">
             <div className="flex-shrink-0">
-              <WalletConnect />
+              <WalletManager />
             </div>
           </div>
         </div>

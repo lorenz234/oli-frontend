@@ -117,21 +117,21 @@ const ValidationSummary: React.FC<ValidationSummaryProps> = ({
   // Show success state if no errors (and no warnings in validation mode)
   if (errorCount === 0 && (isValidationMode || warningCount === 0)) {
     return (
-      <div className="mb-3 bg-green-50 border border-green-200 rounded-lg shadow-sm overflow-hidden">
-        {/* Success Header */}
-        <div className="bg-green-100 border-b border-green-200 px-3 py-2">
+      <div className="mb-0 bg-green-50 border-b border-green-200">
+        {/* Compact Success Header - Table-like header */}
+        <div className="px-3 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="flex items-center justify-center w-5 h-5 bg-green-200 rounded">
-                <svg className="w-3 h-3 text-green-700" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center justify-center w-4 h-4 bg-green-100 rounded">
+                <svg className="w-2.5 h-2.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-                          <h3 className="text-sm font-medium text-green-800">
-              {isValidationMode ? 'Validation Complete' : 'Import Complete'}
-            </h3>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-200 text-green-800">
-                Ready to attest
+              <h3 className="text-xs font-medium text-green-700 uppercase tracking-wider">
+                {isValidationMode ? 'Validation Complete' : 'Import Complete'}
+              </h3>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                Ready to submit
               </span>
               {conversionCount > 0 && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
@@ -143,33 +143,11 @@ const ValidationSummary: React.FC<ValidationSummaryProps> = ({
               onClick={onClose}
               className="text-green-400 hover:text-green-600 transition-colors p-1 hover:bg-green-200 rounded"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-        </div>
-        
-        {/* Success Content */}
-        <div className="p-3 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <div className="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-700" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
-          <h4 className="text-base font-semibold text-green-800 mb-1">
-            🎉 Congratulations! You&apos;re ready to bulk attest
-          </h4>
-          <p className="text-sm text-green-700">
-            All validation checks have passed. You can now proceed with creating your bulk attestations.
-          </p>
-          {conversionCount > 0 && (
-            <p className="text-xs text-blue-700 mt-2">
-              {conversionCount} chain ID{conversionCount !== 1 ? 's were' : ' was'} automatically converted during import.
-            </p>
-          )}
         </div>
       </div>
     );

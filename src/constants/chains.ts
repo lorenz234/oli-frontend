@@ -464,6 +464,23 @@ export const CHAINS: ChainMetadata[] = [
     description: 'Starknet is a permissionless Layer 2 ZK-rollup that operates as a validity-rollup, using STARK proofs and the Cairo programming language.'
   },
   {
+    id: 'soneium',
+    name: 'Soneium',
+    shortName: 'Soneium',
+    caip2: 'eip155:1868',
+    colors: {
+      light: ['#6366F1', '#6366F1'],
+      dark: ['#818CF8', '#818CF8'],
+      darkTextOnBackground: false
+    },
+    logo: {
+      body: '<circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="7.5" cy="7.5" r="2" fill="currentColor"/>',
+      width: 15,
+      height: 15
+    },
+    description: 'Soneium is an Ethereum Layer 2 blockchain network that provides scalable and efficient transaction processing with ETH as its native currency.'
+  },
+  {
     id: 'any',
     name: 'Any EVM Chain',
     shortName: 'Any EVM Chain',

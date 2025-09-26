@@ -202,12 +202,6 @@ export class SimpleLinkResolver {
     this.context = context;
     this.sectionMap = new Map();
     this.buildSectionMap(sections);
-    
-    // Debug: Log mapped URLs (only once)
-    if (!SimpleLinkResolver.hasLoggedMappings) {
-      console.log('🗺️ Section mappings:', this.getMappedUrls());
-      SimpleLinkResolver.hasLoggedMappings = true;
-    }
   }
 
   private static hasLoggedMappings = false;
@@ -341,7 +335,7 @@ export class SimpleLinkResolver {
             // Default to main OLI repository
             directBlobUrl = `https://github.com/${this.context.repositoryOwner}/${this.context.repositoryName}/blob/${this.context.branch}/${path}`;
           }
-          console.log('🔗 [LINK_RESOLVER] Created direct blob URL:', directBlobUrl, 'for section:', section.id);
+
           this.sectionMap.set(directBlobUrl, section);
           
           // Also map the double-slash version (common issue)

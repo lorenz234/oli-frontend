@@ -30,7 +30,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <DynamicContextProvider
       settings={{
         // Your Dynamic Environment ID
-        environmentId: process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || 'your-dynamic-environment-id',
+        environmentId: process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || 'your-dynamic-environment-id', // TODO: Set NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID in Vercel
         
         // Wallet connectors - includes Coinbase Smart Wallet
         walletConnectors: [EthereumWalletConnectors],

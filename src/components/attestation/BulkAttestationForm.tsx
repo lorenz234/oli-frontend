@@ -584,7 +584,6 @@ const BulkAttestationForm: React.FC = () => {
 
     // Check if Dynamic wallet is connected (in connect-only mode, user might be null)
     if (!primaryWallet) {
-      console.error('Wallet connection check failed (bulk):', { user: !!user, primaryWallet: !!primaryWallet });
       showNotification("Please connect your wallet first", "error");
       return;
     }

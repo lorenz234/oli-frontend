@@ -80,7 +80,6 @@ const HomePage: FC = () => {
 
     fetchProjects();
   }, []);
-  console.log(projects);
 
   return (
     <div className="min-h-screen bg-white">

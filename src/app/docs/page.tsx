@@ -1,10 +1,10 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import DocsLayout from '@/components/DocsLayout';
+import EnhancedDocsLayout from '@/components/docs/EnhancedDocsLayout';
 
 function DocsContent() {
-  return <DocsLayout />;
+  return <EnhancedDocsLayout />;
 }
 
 export default function DocsPage() {

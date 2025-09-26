@@ -202,13 +202,6 @@ const fetchAttesterData = async (attesterAddress: string): Promise<AttesterApiRe
   }
 };
 
-interface AttestationGroup {
-  isOffchain: boolean;
-  _count: {
-    _all: number;
-  };
-}
-
 interface LabelData {
   name: string;
   count: number;

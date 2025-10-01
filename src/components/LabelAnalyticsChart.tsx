@@ -68,13 +68,6 @@ interface ProcessedAttestation {
   timeCreated: number;
 }
 
-// Interface for bubble chart data
-interface BubbleData {
-  name: string;
-  count: number;
-  chainId: string;
-  color: string;
-}
 interface BlockspaceCoverageData {
   chainName: string;
   labeledPercentage: number;

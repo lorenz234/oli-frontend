@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import LoadingAnimation from '@/components/LoadingAnimation';
 import { CHAINS } from '@/constants/chains';
 import yaml from 'js-yaml';
@@ -471,7 +471,6 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
   const processAttesterData = () => {
     if (!attesterData?.data?.totals?.values) {
       return {
-        bubbleData: [],
         attesterChartData: [],
         attestationsList: []
       };
@@ -539,13 +538,12 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     }
 
     return {
-      bubbleData,
       attesterChartData,
       attestationsList: attestationsList.slice(0, 10) // Show only first 10
     };
   };
 
-  const { bubbleData, attesterChartData, attestationsList } = processAttesterData();
+  const { attesterChartData, attestationsList } = processAttesterData();
 
   // Process attestation distribution data for pie chart
   const processedAttestationDistribution = [

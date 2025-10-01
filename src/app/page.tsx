@@ -105,11 +105,7 @@ const HomePage: FC = () => {
             </div>
             
             <p className="mt-6 max-w-md mx-auto text-xl text-gray-500 sm:text-2xl md:text-3xl md:max-w-4xl font-light leading-relaxed">
-              The missing context layer for Web3
-            </p>
-            
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
-              A unified standard, shared registry, and trust layer for EVM address labels.
+              A Standard, Registry and Trust Layer for EVM Address Labels.
             </p>
             
             <div className="mt-8 mx-auto sm:flex sm:justify-center">
@@ -149,10 +145,10 @@ const HomePage: FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900">
-              Why OLI Matters?
+              Why OLI?
             </h2>
             <p className="mt-4 max-w-3xl mx-auto text-xl text-gray-500">
-              Blockchains are transparent, but they are not understandable
+              Blockchains need labels to be understandable, yet Web3 lacks a universal system for creating and sharing them.
             </p>
           </div>
           
@@ -165,10 +161,10 @@ const HomePage: FC = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Centralized Data Silos
+                Centralized Label Silos
               </h3>
               <p className="text-gray-600">
-                Context is locked away in proprietary data silos, creating a fragile ecosystem dependent on a few companies.
+                Labels are fragmented across many centralized data silos, often locked behind expensive paywalls.
               </p>
             </div>
 
@@ -180,10 +176,10 @@ const HomePage: FC = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Redundant Infrastructure
+                Redundant Labeling Efforts
               </h3>
               <p className="text-gray-600">
-                Teams are forced to rebuild the same infrastructure repeatedly, stifling innovation and wasting resources.
+                Each data team is forced to recreate the same labels independently, resulting in substantial redundant work across the ecosystem.
               </p>
             </div>
 
@@ -198,7 +194,7 @@ const HomePage: FC = () => {
                 User Vulnerability
               </h3>
               <p className="text-gray-600">
-                Users are vulnerable to scams that better context could prevent, lacking the information needed for safe interactions.
+                Users are vulnerable to scams because of poor labeling; better standards could easily fix this.
               </p>
             </div>
           </div>
@@ -222,7 +218,7 @@ const HomePage: FC = () => {
         The Three Pillars of OLI
       </h2>
       <p className="mt-4 max-w-3xl mx-auto text-xl text-blue-100">
-        OLI is built on three composable pillars that work together to create a rich and reliable data ecosystem
+        OLI is built on three composable pillars that build on top of each other to create a rich and reliable data ecosystem
       </p>
       
       {/* Explainer Button */}
@@ -264,7 +260,7 @@ const HomePage: FC = () => {
             </div>
           </div>
           <p className="mt-2 text-base text-gray-500 mb-6 flex-grow">
-            The foundation—a shared data model and taxonomy for labels. An open, versioned standard that ensures everyone speaks the same language, making on-chain labels truly composable.
+            The foundation: A shared data model for labels. An open standard that ensures everyone speaks the same language, making labels composable.
           </p>
           <Link href="/docs?section=label-schema" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
             View documentation
@@ -301,7 +297,7 @@ const HomePage: FC = () => {
             </div>
           </div>
           <p className="mt-2 text-base text-gray-500 mb-6 flex-grow">
-            Built on the Label Schema, the Label Pool is a decentralized, on-chain database powered by EAS. The central hub where you contribute once, and your labels are seen everywhere.
+            Built on the Label Schema, the Label Pool is a decentralized, onchain label registry powered by EAS. The central hub where you contribute once and your labels are seen everywhere.
           </p>
           <Link href="/docs?section=label-pool" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
             View documentation
@@ -338,7 +334,7 @@ const HomePage: FC = () => {
             </div>
           </div>
           <p className="mt-2 text-base text-gray-500 mb-6 flex-grow">
-            An optional, sophisticated algorithmic layer that turns raw, crowd-sourced labels into reliable, production-ready signals by analyzing source diversity and attestor reputation.
+            An algorithmic layer that transforms raw, crowd-sourced labels from the Label Pool into high-quality, reliable, and production-ready labels for your project.
           </p>
           <Link href="/docs?section=label-trust" className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium">
             View documentation
@@ -377,7 +373,7 @@ const HomePage: FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-gray-900">
-              How to Get Involved with OLI
+              How to Start Using OLI
             </h2>
             <p className="mt-4 max-w-3xl mx-auto text-xl text-gray-500">
               OLI is built to be used. Find and share contract labels once, and use them everywhere.
@@ -404,7 +400,7 @@ const HomePage: FC = () => {
                 <p className="text-xl text-indigo-600 font-medium mb-6">🏗️ The Foundation for Everyone</p>
                 
                 <p className="text-gray-700 mb-6 max-w-3xl mx-auto leading-relaxed">
-                  Whether you&apos;re consuming labels, producing labels, or building community tools, everything starts with understanding the OLI Label Schema. This is your essential first step.
+                  Whether you&apos;re consuming labels, producing labels or building community tools, everything starts with understanding the OLI Label Schema. This is your essential first step.
                 </p>
                 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -414,15 +410,15 @@ const HomePage: FC = () => {
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="text-indigo-500 mr-2">✓</span>
-                    Community-driven taxonomy
+                    Community owned
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="text-indigo-500 mr-2">✓</span>
-                    Tag definitions & patterns
+                    Flexible tag definitions
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="text-indigo-500 mr-2">✓</span>
-                    Ecosystem compatibility
+                    Infinitely Extensible
                   </div>
                   
                 </div>
@@ -431,7 +427,7 @@ const HomePage: FC = () => {
                   href="/docs?section=label-schema"
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl text-lg"
                 >
-                  🚀 Start with Label Schema
+                  Start with Label Schema
                   <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>

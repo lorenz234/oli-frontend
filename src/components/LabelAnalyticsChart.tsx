@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import LoadingAnimation from '@/components/LoadingAnimation';
 import { CHAINS } from '@/constants/chains';
 import yaml from 'js-yaml';
@@ -434,9 +434,8 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     const chainData: ChainData[] = Object.entries(chainCounts)
       .map(([chainId, count], index) => {
         const chain = CHAINS.find(c => c.caip2 === chainId);
-        const chainNumber = chainId.replace('eip155:', '');
         return {
-          name: chain?.shortName || `Chain ID ${chainNumber}`,
+          name: chain?.shortName || chainId,
           count,
           color: chainColors[index % chainColors.length]
         };
@@ -473,6 +472,7 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     if (!attesterData?.data?.totals?.values) {
       return {
         bubbleData: [],
+        attesterChartData: [],
         attestationsList: []
       };
     }
@@ -480,16 +480,34 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     const values = attesterData.data.totals.values;
     const bubbleColors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6'];
 
-    // Create bubble data
+    // Create bubble data (keeping for compatibility)
     const bubbleData: BubbleData[] = values.map(([chainId, tagId, count], index) => {
       const chain = CHAINS.find(c => c.caip2 === chainId);
       return {
         name: tagId,
         count: count,
-        chainId: chain?.shortName || chainId.replace('eip155:', 'Chain '),
+        chainId: chain?.shortName || chainId,
         color: bubbleColors[index % bubbleColors.length]
       };
     }).sort((a, b) => b.count - a.count);
+
+    // Create chart data for bar chart - aggregate by tag_id based on selected chain
+    const tagCounts: Record<string, number> = {};
+    
+    values.forEach(([chainId, tagId, count]) => {
+      // Filter by selected chain if specified
+      if (selectedChain === 'all' || chainId === selectedChain) {
+        tagCounts[tagId] = (tagCounts[tagId] || 0) + count;
+      }
+    });
+
+    const attesterChartData = Object.entries(tagCounts)
+      .map(([tagId, count], index) => ({
+        name: tagId,
+        count: count,
+        color: bubbleColors[index % bubbleColors.length]
+      }))
+      .sort((a, b) => b.count - a.count);
 
     // Process attestations list
     const attestationsList: ProcessedAttestation[] = [];
@@ -522,11 +540,12 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
 
     return {
       bubbleData,
+      attesterChartData,
       attestationsList: attestationsList.slice(0, 10) // Show only first 10
     };
   };
 
-  const { bubbleData, attestationsList } = processAttesterData();
+  const { bubbleData, attesterChartData, attestationsList } = processAttesterData();
 
   // Process attestation distribution data for pie chart
   const processedAttestationDistribution = [
@@ -542,8 +561,6 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     }
   ].filter(item => item.count > 0);
   
-
-
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -650,8 +667,8 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
             <div className="flex justify-between items-center">
               <p className="text-gray-600">
                 {selectedChain === 'all' 
-                  ? "Number of tags assigned to each Tag ID."
-                  : `Number of tags assigned to each Tag ID on ${CHAINS.find(chain => chain.caip2 === selectedChain)?.shortName}.`
+                  ? "Number of tags for each Tag ID."
+                  : `Number of tags for each Tag ID on ${CHAINS.find(chain => chain.caip2 === selectedChain)?.shortName}.`
                 }
               </p>
               <div className="flex items-center space-x-2">
@@ -675,22 +692,25 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
           </div>
 
           <div>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={processedLabelData}>
+            <ResponsiveContainer width="100%" height={800}>
+              <BarChart 
+                data={processedLabelData} 
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
+                <XAxis type="number" tick={{ fontSize: 12 }} />
+                <YAxis 
                   dataKey="name" 
+                  type="category"
                   tick={{ fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
+                  width={150}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey="count" 
                   fill="#3B82F6"
-                  radius={[4, 4, 0, 0]}
+                  radius={[0, 4, 4, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -714,8 +734,8 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
           <div className="flex justify-between items-center">
             <p className="text-gray-600">
               {selectedTagId === 'all' 
-                ? "Number of tags assigned to each blockchain network."
-                : `Number of ${selectedTagId} tags assigned to each blockchain network.`
+                ? "Number of tags assigned to each blockchain network (minimum of 10)."
+                : `Number of ${selectedTagId} tags assigned to each blockchain network (minimum of 10).`
               }
             </p>
             <div className="flex items-center space-x-2">
@@ -739,22 +759,25 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
         </div>
 
         <div>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={processedChainData}>
+          <ResponsiveContainer width="100%" height={800}>
+            <BarChart 
+              data={processedChainData}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
+              <XAxis type="number" tick={{ fontSize: 12 }} />
+              <YAxis 
                 dataKey="name" 
+                type="category"
                 tick={{ fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
+                width={100}
               />
-              <YAxis tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
                 dataKey="count" 
                 fill="#3B82F6"
-                radius={[4, 4, 0, 0]}
+                radius={[0, 4, 4, 0]}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -771,17 +794,37 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
             <p className="text-gray-600">
               Analyze attestations by specific attester address.
             </p>
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">
-                Attester Address:
-              </label>
-              <input
-                type="text"
-                value={selectedAttester}
-                onChange={(e) => setSelectedAttester(e.target.value)}
-                placeholder="0x123...abc"
-                className="px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-48"
-              />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Filter by Chain:
+                </label>
+                <select
+                  value={selectedChain}
+                  onChange={(e) => setSelectedChain(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                  disabled={!selectedAttester.trim() || !attesterData}
+                >
+                  <option value="all">All Chains</option>
+                  {CHAINS.map((chain) => (
+                    <option key={chain.id} value={chain.caip2}>
+                      {chain.shortName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Attester Address:
+                </label>
+                <input
+                  type="text"
+                  value={selectedAttester}
+                  onChange={(e) => setSelectedAttester(e.target.value)}
+                  placeholder="0x123...abc"
+                  className="px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-48"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -806,52 +849,55 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
           <div className="space-y-8">
             {/* Tag Distribution */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Attestation Summary</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {selectedChain === 'all' ? (
+                  <>
+                    Tag Breakdown ({attesterChartData.reduce((sum, item) => sum + item.count, 0).toLocaleString()})
+                  </>
+                ) : (
+                  <>
+                    Tag Breakdown - {CHAINS.find(chain => chain.caip2 === selectedChain)?.shortName} ({attesterChartData.reduce((sum, item) => sum + item.count, 0).toLocaleString()})
+                  </>
+                )}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {selectedChain === 'all' 
+                  ? "Number of attestations by tag type across all chains for this attester."
+                  : `Number of attestations by tag type on ${CHAINS.find(chain => chain.caip2 === selectedChain)?.shortName} for this attester.`
+                }
+              </p>
               
-              {/* Simple Table Layout */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <div className="grid grid-cols-3 gap-4 text-xs font-medium text-gray-600 uppercase tracking-wide">
-                    <div>Tag Type</div>
-                    <div>Chain</div>
-                    <div className="text-right">Count</div>
-                  </div>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {bubbleData.map((item, index) => (
-                    <div key={index} className="px-4 py-3 hover:bg-gray-50">
-                      <div className="grid grid-cols-3 gap-4 items-center">
-                        <div className="text-sm font-medium text-gray-900">
-                          {item.name}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {item.chainId}
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900 text-right">
-                          {item.count}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Totals Footer */}
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-gray-900">
-                      {new Set(bubbleData.map(item => item.name)).size} tag types on {new Set(bubbleData.map(item => item.chainId)).size} chains
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      Total: {bubbleData.reduce((sum, item) => sum + item.count, 0)}
-                    </span>
-                  </div>
-                </div>
+              <div>
+                <ResponsiveContainer width="100%" height={500}>
+                  <BarChart 
+                    data={attesterChartData} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category"
+                      tick={{ fontSize: 12 }}
+                      width={200}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#3B82F6"
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
             {/* Latest Attestations */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Latest Attestations</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Latest Attestations by {selectedAttester.substring(0, 6)}...{selectedAttester.substring(selectedAttester.length - 4)}
+              </h3>
               <div className="space-y-4">
                 {attestationsList.map((attestation, index) => {
                   // Parse the decoded data to extract tags

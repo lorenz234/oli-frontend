@@ -479,17 +479,6 @@ const LabelAnalyticsContent: React.FC<LabelAnalyticsContentProps> = ({
     const values = attesterData.data.totals.values;
     const bubbleColors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6'];
 
-    // Create bubble data (keeping for compatibility)
-    const bubbleData: BubbleData[] = values.map(([chainId, tagId, count], index) => {
-      const chain = CHAINS.find(c => c.caip2 === chainId);
-      return {
-        name: tagId,
-        count: count,
-        chainId: chain?.shortName || chainId,
-        color: bubbleColors[index % bubbleColors.length]
-      };
-    }).sort((a, b) => b.count - a.count);
-
     // Create chart data for bar chart - aggregate by tag_id based on selected chain
     const tagCounts: Record<string, number> = {};
     

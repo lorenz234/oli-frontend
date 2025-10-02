@@ -253,4 +253,141 @@ When parameters are provided:
 
 - If an invalid chain parameter is provided, all chains will be shown in the results
 - If an invalid address format is provided, the search will show appropriate validation errors
-- If no parameters are provided, the search page loads with empty fields ready for user input 
+- If no parameters are provided, the search page loads with empty fields ready for user input
+
+## Documentation Page URL Parameters
+
+### Base URL
+
+```
+https://www.openlabelsinitiative.org/docs
+```
+
+### Supported Parameters
+
+#### Section Parameter
+- `section`: Navigate directly to a specific documentation section
+
+### Available Section IDs
+
+#### Main Sections
+- `overview` - Introduction to the Open Labels Initiative
+- `label-schema` - Data Model & Tag Definitions
+- `label-pool` - Label Pool & Data Entry
+- `label-trust` - Label Confidence & Trust Algorithms
+- `oli-python` - OLI Python Package
+- `partnerships` - Partnership documentation
+
+#### Label Schema Subsections
+- `tag-documentation` - Interactive tag definitions and value sets browser
+
+#### Label Pool Subsections
+- `attestation-schema` - Ethereum Attestation Service schemas
+- `eas-schema-versioning` - EAS Schema Versioning configuration
+- `tooling-read` - Tools for reading data from the label pool
+- `tooling-read-parquet` - Parquet data processing tools
+- `tooling-read-python` - Python reading tools
+- `tooling-write` - Tools for writing data to the label pool
+- `tooling-write-python` - Python writing tools
+- `tooling-write-typescript` - TypeScript writing tools
+
+### Example URLs
+
+#### Navigate to overview
+```
+https://www.openlabelsinitiative.org/docs?section=overview
+```
+
+#### Navigate to label schema
+```
+https://www.openlabelsinitiative.org/docs?section=label-schema
+```
+
+#### Navigate to tag documentation
+```
+https://www.openlabelsinitiative.org/docs?section=tag-documentation
+```
+
+#### Navigate to Python tools
+```
+https://www.openlabelsinitiative.org/docs?section=tooling-write-python
+```
+
+#### Navigate to partnerships
+```
+https://www.openlabelsinitiative.org/docs?section=partnerships
+```
+
+### Integration Examples
+
+#### JavaScript
+```javascript
+// Generate a URL for a specific documentation section
+const generateDocsURL = (section) => {
+  const baseURL = 'https://www.openlabelsinitiative.org/docs';
+  const params = new URLSearchParams({ section });
+  return `${baseURL}?${params.toString()}`;
+};
+
+// Examples
+const overviewUrl = generateDocsURL('overview');
+const schemaUrl = generateDocsURL('label-schema');
+const pythonUrl = generateDocsURL('oli-python');
+```
+
+#### HTML
+```html
+<!-- Direct link to tag documentation -->
+<a href="https://www.openlabelsinitiative.org/docs?section=tag-documentation">
+  View Tag Documentation
+</a>
+
+<!-- Button to open Python tools -->
+<button onclick="window.open('https://www.openlabelsinitiative.org/docs?section=tooling-write-python', '_blank')">
+  Python Writing Tools
+</button>
+```
+
+#### React
+```jsx
+const DocsLink = ({ section, children }) => {
+  const url = `https://www.openlabelsinitiative.org/docs?section=${encodeURIComponent(section)}`;
+  
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+};
+
+// Usage
+<DocsLink section="label-schema">
+  Read about Label Schema
+</DocsLink>
+
+<DocsLink section="partnerships">
+  Partnership Opportunities
+</DocsLink>
+```
+
+### Behavior
+
+When the section parameter is provided:
+1. The documentation page automatically navigates to the specified section
+2. The sidebar highlights the active section
+3. The appropriate content is loaded and displayed
+4. If the section has subsections, the sidebar expands to show them
+5. Users can still navigate to other sections using the sidebar
+
+### Error Handling
+
+- If an invalid section parameter is provided, the page defaults to the "overview" section
+- If no parameter is provided, the page loads the "overview" section by default
+- The sidebar always displays all available sections for easy navigation
+
+### Notes
+
+- Section IDs are case-sensitive
+- The hierarchical structure of sections is preserved in the sidebar navigation
+- Some sections load content from GitHub repositories dynamically
+- URL encoding is recommended for consistency, though simple section IDs don't require it

@@ -1,10 +1,11 @@
-// app/layout.tsx
+// app/layout.tsx (server component)
 import Providers from '@/components/Providers';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import './globals.css';
 import { Metadata } from 'next';
-import { Analytics } from "@vercel/analytics/react"
+import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
+import ClientCookieComponents from '@/app/ClientCookieComponents';
 
 // Define default metadata
 export const metadata: Metadata = {
@@ -43,14 +44,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <Navigation />
-          <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-            {children}
-          </div>
-          <Footer />
-        </Providers>
-        <Analytics />
+        {/* Wrap the entire app with CookieConsentProvider */}
+        <CookieConsentProvider>
+          <Providers>
+            <Navigation />
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+              {children}
+            </div>
+            <Footer />
+            
+            {/* Import cookie consent components */}
+            <ClientCookieComponents />
+          </Providers>
+        </CookieConsentProvider>
       </body>
     </html>
   );

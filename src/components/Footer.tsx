@@ -3,6 +3,7 @@
 import type { FC } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { CookieSettingsButton } from './CookieConsent';
 
 const Footer: FC = () => {
   const router = useRouter();
@@ -42,6 +43,7 @@ const Footer: FC = () => {
           >
             Imprint
           </a>
+          <CookieSettingsButton />
         </div>
         <div className="flex items-center justify-end gap-4">
           <a 

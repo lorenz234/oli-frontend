@@ -15,6 +15,7 @@ export default function AnalyticsPage() {
           
           <LabelAnalyticsChart />
           <LatestAttestations />
+          
         </div>
       </main>
     </div>

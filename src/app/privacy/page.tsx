@@ -57,11 +57,40 @@ const PrivacyPolicyPage: FC = () => {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-gray-900">Cookies</h2>
-            <p className="text-gray-700">
+            <p className="text-gray-700 mb-4">
               Our website uses cookies to enhance your experience. Cookies are text files stored in your 
-              computer system via your browser. Many websites and servers use cookies. You can prevent 
-              the setting of cookies through our website at any time by means of a corresponding setting 
-              of your browser and thus permanently deny the setting of cookies.
+              computer system via your browser. We use different types of cookies for different purposes:
+            </p>
+            
+            <h3 className="text-xl font-semibold mb-2 text-gray-900">Types of Cookies We Use</h3>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700 mb-4">
+              <li>
+                <strong>Essential Cookies:</strong> These cookies are necessary for the website to function 
+                properly and cannot be disabled. They include cookies needed for wallet connections, session 
+                management, and security features.
+              </li>
+              <li>
+                <strong>Analytics Cookies:</strong> These cookies help us understand how visitors interact with 
+                our website. We use Vercel Analytics which collects anonymized usage data to help us improve 
+                our website.
+              </li>
+              <li>
+                <strong>Marketing Cookies:</strong> These cookies are used to track visitors across websites 
+                to display relevant advertisements. We only use these cookies with your explicit consent.
+              </li>
+            </ul>
+            
+            <h3 className="text-xl font-semibold mb-2 text-gray-900">Cookie Consent</h3>
+            <p className="text-gray-700 mb-4">
+              When you first visit our website, you will be presented with a cookie consent banner that allows 
+              you to accept or reject different categories of cookies. You can change your preferences at any time 
+              by clicking the &quot;Cookie Settings&quot; link in the footer.
+            </p>
+            
+            <p className="text-gray-700">
+              You can also prevent the setting of cookies through your browser settings at any time and thus 
+              permanently deny the setting of cookies. However, please note that if you disable essential cookies, 
+              some features of the website may not function properly.
             </p>
           </section>
 
@@ -110,7 +139,7 @@ const PrivacyPolicyPage: FC = () => {
 
           <section className="text-sm text-gray-500 mt-12 pt-8 border-t">
             <p>
-              Last updated: February 2025
+              Last updated: October 2025
             </p>
           </section>
         </div>

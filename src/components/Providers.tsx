@@ -137,8 +137,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         // Default to Base network for OLI attestations
         initialAuthenticationMode: 'connect-only',
         
-        // Privacy settings - minimal data collection
+        // Privacy settings - aligned with cookie consent
         enableVisitTrackingOnConnectOnly: false,
+        privacyPolicyUrl: '/privacy',
       }}
     >
       <WagmiProvider config={config}>

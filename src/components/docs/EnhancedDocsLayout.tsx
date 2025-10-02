@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import FaqScript from '../FaqScript';
 import { 
   DOC_SECTIONS,
@@ -105,6 +105,7 @@ const cacheImage = async (src: string): Promise<string> => {
 
 const EnhancedDocsLayout: React.FC<EnhancedDocsLayoutProps> = ({ className = "" }) => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const sectionParam = searchParams.get('section');
   
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
@@ -123,6 +124,13 @@ const EnhancedDocsLayout: React.FC<EnhancedDocsLayoutProps> = ({ className = "" 
       ? sectionParam 
       : 'overview';
   });
+
+  // Update URL when active section changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('section', activeSection);
+    router.replace(`/docs?${params.toString()}`, { scroll: false });
+  }, [activeSection, router, searchParams]);
 
   // Update currentContext when active section changes
   useEffect(() => {

@@ -9,9 +9,9 @@ export interface PaymasterConfig {
 
 // Coinbase paymaster configuration for Base network
 export const COINBASE_PAYMASTER_CONFIG: PaymasterConfig = {
-  rpcUrl: 'https://api.developer.coinbase.com/rpc/v1/base/hyKHUTPE7kd0VnvFqYsMiAUjvg1wshR3',
+  rpcUrl: process.env.NEXT_PUBLIC_COINBASE_PAYMASTER_URL || '',
   chainId: 8453, // Base
-  enabled: true
+  enabled: !!process.env.NEXT_PUBLIC_COINBASE_PAYMASTER_URL
 };
 
 // Network configurations with paymaster support

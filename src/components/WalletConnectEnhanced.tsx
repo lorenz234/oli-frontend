@@ -13,7 +13,7 @@ import {
   ArrowRight,
   RefreshCw
 } from 'lucide-react';
-import { useDynamicContext, useWalletOptions } from '@dynamic-labs/sdk-react-core';
+import { useDynamicContext, useWalletOptions, useUserWallets, useSwitchWallet } from '@dynamic-labs/sdk-react-core';
 
 const WalletConnectEnhanced = () => {
   const { 
@@ -24,6 +24,8 @@ const WalletConnectEnhanced = () => {
     user 
   } = useDynamicContext();
   const { selectWalletOption } = useWalletOptions();
+  const userWallets = useUserWallets();
+  const switchWallet = useSwitchWallet();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hasEnoughFees, setHasEnoughFees] = useState<boolean | null>(null);
@@ -162,9 +164,29 @@ const WalletConnectEnhanced = () => {
   const connectToCoinbase = async () => {
     try {
       setIsOpen(false); // Close the dropdown
-      await selectWalletOption('coinbase');
+      
+      // Check if user already has a Coinbase wallet connected
+      const coinbaseWallet = userWallets.find(wallet => {
+        const name = wallet.connector?.name;
+        return (
+          name === 'Coinbase' || 
+          name === 'Coinbase Smart Wallet' ||
+          name === 'coinbase_smart_wallet' ||
+          name?.toLowerCase() === 'coinbase'
+        );
+      });
+      
+      if (coinbaseWallet) {
+        // User already has Coinbase wallet connected, just switch to it
+        console.log('Switching to existing Coinbase wallet');
+        await switchWallet(coinbaseWallet.id);
+      } else {
+        // No Coinbase wallet connected, open the connection flow
+        console.log('Connecting new Coinbase wallet');
+        await selectWalletOption('coinbase');
+      }
     } catch (error) {
-      console.error('Failed to connect to Coinbase:', error);
+      console.error('Failed to connect/switch to Coinbase:', error);
     }
   };
 

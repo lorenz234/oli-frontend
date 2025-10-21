@@ -35,9 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Orbit chains cache
+# Orbit chains cache (the orbitChains.ts file is tracked so the app has latest chains)
 .cache/
-src/constants/orbitChains.ts
 
 
 node_modules/

@@ -35,13 +35,19 @@ jobs:
           echo "Running Orbit chains sync..."
           npm run sync-orbit-chains
           
-          # Check if there are changes
-          if git diff --quiet src/constants/orbitChains.ts; then
+          # Add the file to git (handles both new and modified files)
+          git add src/constants/orbitChains.ts
+          
+          # Check if there are changes (both new files and modifications)
+          if git diff --cached --quiet src/constants/orbitChains.ts; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No changes detected"
+            echo "✓ No changes detected - Orbit chains are up to date"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected in Orbit chains"
+            echo "✓ Changes detected in Orbit chains - will create PR"
+            
+            # Show what changed
+            git diff --cached --stat src/constants/orbitChains.ts
           fi
       
       - name: Create Pull Request

@@ -1,6 +1,7 @@
 // components/attestation/CustomDropdown.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { isOrbitChain } from '@/constants/chains';
 
 // Enhanced DropdownOption to support grouping and descriptions
 interface DropdownOption {
@@ -21,6 +22,7 @@ interface CustomDropdownProps {
   error?: string;
   showGroups?: boolean; // Option to show or hide group headers
   isProjectDropdown?: boolean; // New prop to identify if this is the Owner Project dropdown
+  isChainDropdown?: boolean; // New prop to identify if this is a chain dropdown
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
@@ -33,7 +35,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   className = '',
   error,
   showGroups = true,
-  isProjectDropdown = false
+  isProjectDropdown = false,
+  isChainDropdown = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,46 +125,64 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   };
 
   // Render a single option
-  const renderOption = (option: DropdownOption) => (
-    <li
-      key={String(option.value)}
-      id={`${id}-option-${option.value}`}
-      role="option"
-      aria-selected={String(value) === String(option.value)}
-      className={`cursor-pointer select-none relative py-2 pl-3 pr-9 ${
-        String(value) === String(option.value)
-          ? 'text-white bg-indigo-600'
-          : 'text-gray-900 hover:bg-indigo-100'
-      }`}
-      onClick={() => {
-        onChange(String(option.value));
-        setIsOpen(false);
-        setSearchTerm('');
-      }}
-      title={option.description}
-    >
-      <div className="flex flex-col">
-        <span className={`block truncate ${String(value) === String(option.value) ? 'font-semibold' : 'font-normal'}`}>
-          {option.label}
-        </span>
-        {option.description && (
-          <span className={`text-xs ${
-            String(value) === String(option.value) ? 'text-indigo-100' : 'text-gray-500'
-          }`}>
-            {option.description}
+  const renderOption = (option: DropdownOption) => {
+    const isOrbit = isChainDropdown && isOrbitChain(String(option.value));
+    const isSelected = String(value) === String(option.value);
+    
+    return (
+      <li
+        key={String(option.value)}
+        id={`${id}-option-${option.value}`}
+        role="option"
+        aria-selected={isSelected}
+        className={`cursor-pointer select-none relative py-2 pl-3 pr-9 ${
+          isSelected
+            ? 'text-white bg-indigo-600'
+            : 'text-gray-900 hover:bg-indigo-100'
+        }`}
+        onClick={() => {
+          onChange(String(option.value));
+          setIsOpen(false);
+          setSearchTerm('');
+        }}
+        title={option.description}
+      >
+        <div className="flex flex-col">
+          <span className={`flex items-center gap-2 truncate ${isSelected ? 'font-semibold' : 'font-normal'}`}>
+            {option.label}
+            {isOrbit && (
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                isSelected 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+              }`}>
+                <svg className="w-2.5 h-2.5 mr-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" opacity="0.6"/>
+                  <path d="M2 17L12 22L22 17L12 12L2 17Z" fill="currentColor"/>
+                </svg>
+                Orbit
+              </span>
+            )}
+          </span>
+          {option.description && (
+            <span className={`text-xs ${
+              isSelected ? 'text-indigo-100' : 'text-gray-500'
+            }`}>
+              {option.description}
+            </span>
+          )}
+        </div>
+
+        {isSelected && (
+          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
+            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
           </span>
         )}
-      </div>
-
-      {String(value) === String(option.value) && (
-        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
-          <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-        </span>
-      )}
-    </li>
-  );
+      </li>
+    );
+  };
 
   // Render project not found message
   const renderProjectNotFound = () => (
@@ -244,7 +265,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

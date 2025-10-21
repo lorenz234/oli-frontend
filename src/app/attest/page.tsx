@@ -31,6 +31,7 @@ import UnlabeledContractsList from '@/components/vibe-attest/UnlabeledContractsL
 import VibeAttestSidebar from '@/components/vibe-attest/VibeAttestSidebar';
 import { UnlabeledContract } from '@/types/unlabeledContracts';
 import { CHAINS } from '@/constants/chains';
+import { NETWORK_CONFIG, getNetworkConfig } from '@/constants/eas';
 
 // Chain mapping function to convert various formats to CAIP-2
 const mapChainToCAIP2 = (chainInput: string): string | undefined => {
@@ -68,6 +69,11 @@ function AttestPageContent() {
   const [selectedContract, setSelectedContract] = useState<UnlabeledContract | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const [vibeAttestVisible, setVibeAttestVisible] = useState<boolean>(false);
+  
+  // Advanced Network Mode - disabled by default to keep simple Base workflow
+  const [advancedNetworkMode, setAdvancedNetworkMode] = useState<boolean>(false);
+  // Selected attestation network for advanced mode (default to Base)
+  const [selectedNetwork, setSelectedNetwork] = useState<number>(8453);
   
   // Extract URL parameters for prefilling the form
   const [prefilledAddress, setPrefilledAddress] = useState<string | undefined>(undefined);
@@ -231,21 +237,140 @@ function AttestPageContent() {
           Welcome to the OLI Attestation Hub, where you can assign tags to blockchain addresses and smart contracts to improve transparency and discoverability.
         </p>
         
-        {/* Sponsored Fees Notice */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
+        {/* Sponsored Fees Notice & Advanced Network Mode Toggle */}
+        <div className="space-y-4 mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-green-800 mb-1">💡 Pro Tip: Gas-Free Attestations</h3>
+                <p className="text-sm text-green-700">
+                  <strong>Connect with Coinbase Smart Wallet on Base network</strong> to enjoy sponsored gas fees for your attestations. 
+                  No need to worry about transaction costs - we&apos;ve got you covered!
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-green-800 mb-1">💡 Pro Tip: Gas-Free Attestations</h3>
-              <p className="text-sm text-green-700">
-                <strong>Connect with Coinbase Smart Wallet on Base network</strong> to enjoy sponsored gas fees for your attestations. 
-                No need to worry about transaction costs - we&apos;ve got you covered!
-              </p>
+          </div>
+
+          {/* Advanced Network Mode Toggle */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-start space-x-3 flex-1">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-gray-900 mb-1.5">Advanced Attestation Network Selection</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Enable this option to submit attestations to networks beyond Base (e.g., Arbitrum). 
+                    <span className="font-semibold text-blue-700"> Note: Gas fees may apply on other networks.</span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex-shrink-0 ml-6">
+                <button
+                  onClick={() => setAdvancedNetworkMode(!advancedNetworkMode)}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    advancedNetworkMode ? 'bg-blue-600 shadow-md' : 'bg-gray-300'
+                  }`}
+                  role="switch"
+                  aria-checked={advancedNetworkMode}
+                  aria-label="Toggle advanced network selection"
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                      advancedNetworkMode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+            
+            {/* Network Selector Cards - Only visible when advanced mode is enabled */}
+            {advancedNetworkMode && (
+              <div className="mt-6 pt-6 border-t border-blue-200">
+                <h4 className="text-sm font-semibold text-gray-900 mb-4">Choose Attestation Network</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Object.entries(NETWORK_CONFIG).map(([chainId, config]) => {
+                    const isSelected = selectedNetwork === parseInt(chainId);
+                    const isBaseNetwork = parseInt(chainId) === 8453 || parseInt(chainId) === 84532;
+                    
+                    return (
+                      <button
+                        key={chainId}
+                        onClick={() => setSelectedNetwork(parseInt(chainId))}
+                        className={`relative p-4 rounded-lg border-2 text-left transition-all duration-200 ${
+                          isSelected
+                            ? 'border-blue-500 bg-white shadow-md ring-2 ring-blue-200'
+                            : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h5 className={`font-semibold ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+                                {config.name}
+                              </h5>
+                              {isSelected && (
+                                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              {isBaseNetwork ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-medium text-green-700">Gas-free</span>
+                                  </span>
+                                  {' '}with Coinbase Smart Wallet
+                                </>
+                              ) : (
+                                <>
+                                  <span className="inline-flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-medium text-amber-700">Gas fees apply</span>
+                                  </span>
+                                  {' '}on this network
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Info message about selected network */}
+                <div className="mt-4 bg-blue-100 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-xs text-blue-800 leading-relaxed">
+                      All attestations (single and bulk) will be recorded on <span className="font-bold">{getNetworkConfig(selectedNetwork).name}</span>.
+                      {selectedNetwork === 8453 || selectedNetwork === 84532 ? 
+                        ' Coinbase Smart Wallet users enjoy sponsored transactions with no gas fees.' : 
+                        ' Please ensure you have sufficient funds for gas fees on this network.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -496,6 +621,8 @@ function AttestPageContent() {
         <AttestationForm 
           prefilledAddress={prefilledAddress}
           prefilledChainId={prefilledChainId}
+          enableNetworkSelection={advancedNetworkMode}
+          selectedAttestationNetwork={selectedNetwork}
         />
         </div>
       </div>
@@ -508,7 +635,10 @@ function AttestPageContent() {
             Upload a CSV file with multiple addresses to create attestations in bulk. Limited to 50 addresses per upload.
           </p>
         </div>
-        <BulkAttestationForm />
+        <BulkAttestationForm 
+          enableNetworkSelection={advancedNetworkMode}
+          selectedAttestationNetwork={selectedNetwork}
+        />
       </div>
 
       {/* Bulk Scripts Section */}

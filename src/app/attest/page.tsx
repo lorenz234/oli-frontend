@@ -31,7 +31,7 @@ import UnlabeledContractsList from '@/components/vibe-attest/UnlabeledContractsL
 import VibeAttestSidebar from '@/components/vibe-attest/VibeAttestSidebar';
 import { UnlabeledContract } from '@/types/unlabeledContracts';
 import { CHAINS } from '@/constants/chains';
-import { NETWORK_CONFIG, getNetworkConfig } from '@/constants/eas';
+// import { NETWORK_CONFIG, getNetworkConfig } from '@/constants/eas';
 
 // Chain mapping function to convert various formats to CAIP-2
 const mapChainToCAIP2 = (chainInput: string): string | undefined => {
@@ -71,9 +71,9 @@ function AttestPageContent() {
   const [vibeAttestVisible, setVibeAttestVisible] = useState<boolean>(false);
   
   // Advanced Network Mode - disabled by default to keep simple Base workflow
-  const [advancedNetworkMode, setAdvancedNetworkMode] = useState<boolean>(false);
+  // const [advancedNetworkMode, setAdvancedNetworkMode] = useState<boolean>(false);
   // Selected attestation network for advanced mode (default to Base)
-  const [selectedNetwork, setSelectedNetwork] = useState<number>(8453);
+  // const [selectedNetwork, setSelectedNetwork] = useState<number>(8453);
   
   // Extract URL parameters for prefilling the form
   const [prefilledAddress, setPrefilledAddress] = useState<string | undefined>(undefined);
@@ -256,7 +256,7 @@ function AttestPageContent() {
             </div>
           </div>
 
-          {/* Advanced Network Mode Toggle */}
+          {/* Advanced Network Mode Toggle - Temporarily disabled
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-start space-x-3 flex-1">
@@ -294,7 +294,6 @@ function AttestPageContent() {
               </div>
             </div>
             
-            {/* Network Selector Cards - Only visible when advanced mode is enabled */}
             {advancedNetworkMode && (
               <div className="mt-6 pt-6 border-t border-blue-200">
                 <h4 className="text-sm font-semibold text-gray-900 mb-4">Choose Attestation Network</h4>
@@ -355,7 +354,6 @@ function AttestPageContent() {
                   })}
                 </div>
                 
-                {/* Info message about selected network */}
                 <div className="mt-4 bg-blue-100 border border-blue-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
                     <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -372,6 +370,7 @@ function AttestPageContent() {
               </div>
             )}
           </div>
+          */}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -621,8 +620,8 @@ function AttestPageContent() {
         <AttestationForm 
           prefilledAddress={prefilledAddress}
           prefilledChainId={prefilledChainId}
-          enableNetworkSelection={advancedNetworkMode}
-          selectedAttestationNetwork={selectedNetwork}
+          // enableNetworkSelection={advancedNetworkMode}
+          // selectedAttestationNetwork={selectedNetwork}
         />
         </div>
       </div>
@@ -636,8 +635,8 @@ function AttestPageContent() {
           </p>
         </div>
         <BulkAttestationForm 
-          enableNetworkSelection={advancedNetworkMode}
-          selectedAttestationNetwork={selectedNetwork}
+          // enableNetworkSelection={advancedNetworkMode}
+          // selectedAttestationNetwork={selectedNetwork}
         />
       </div>
 

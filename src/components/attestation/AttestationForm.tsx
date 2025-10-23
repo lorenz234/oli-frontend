@@ -11,10 +11,10 @@ import CustomDropdown from './CustomDropdown';
 import { TAG_DESCRIPTIONS } from '../../constants/tagDescriptions';
 
 // Import shared constants and utilities
-import { SCHEMA_UID } from '../../constants/eas';
+import { getNetworkConfig, type SupportedChainId } from '../../constants/eas';
 import { formFields, initialFormState } from '../../constants/formFields';
 import { FormMode, FieldValue, NotificationType, ConfirmationData } from '../../types/attestation';
-import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS, canUseSponsoredTransaction, createSponsoredAttestation } from '../../utils/attestationUtils';
+import { prepareTags, prepareEncodedData, switchToAttestationNetwork, initializeEAS, canUseSponsoredTransaction, createSponsoredAttestation } from '../../utils/attestationUtils';
 
 // Dynamic wallet integration
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
@@ -33,9 +33,16 @@ interface ErrorState {
 interface AttestationFormProps {
   prefilledAddress?: string;
   prefilledChainId?: string;
+  enableNetworkSelection?: boolean; // When false, always uses Base network
+  selectedAttestationNetwork?: number; // Network selected at page level
 }
 
-const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, prefilledChainId }) => {
+const AttestationForm: React.FC<AttestationFormProps> = ({ 
+  prefilledAddress, 
+  prefilledChainId,
+  enableNetworkSelection = false, // Default to simple Base workflow
+  selectedAttestationNetwork = 8453 // Default to Base
+}) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Dynamic wallet integration
@@ -59,17 +66,27 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
     }
   }, [prefilledAddress, prefilledChainId]);
 
-  // Filter fields based on current form mode
+  // Filter fields based on current form mode and network selection setting
   const getVisibleFields = () => {
+    let fields = formFields;
+    
+    // Filter by form mode (simple vs advanced)
     if (formMode === 'advanced') {
       // In advanced mode, show all fields
-      return formFields;
+      fields = formFields;
     } else {
       // In simple mode, only show 'simple' or 'both' fields
-      return formFields.filter(field => {
+      fields = formFields.filter(field => {
         return field.visibility === 'both' || field.visibility === 'simple';
       });
     }
+    
+    // Hide attestation_network field if network selection is disabled
+    if (!enableNetworkSelection) {
+      fields = fields.filter(field => field.id !== 'attestation_network');
+    }
+    
+    return fields;
   };
 
   const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
@@ -77,26 +94,15 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
   };
 
   const submitAttestation = async () => {
+    // Determine which network to use
+    // In advanced mode: use the network selected at page level
+    // In simple mode: always use Base Mainnet
+    const attestationNetworkId = (enableNetworkSelection ? selectedAttestationNetwork : 8453) as SupportedChainId;
+    const networkConfig = getNetworkConfig(attestationNetworkId);
+    
     // Create tags_json object
     const tagsObject = prepareTags(formData);
-    // Debug: Log tags object (development only)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Tags object:', tagsObject);
-    }
-
-    const encodedData = prepareEncodedData(formData.chain_id as string, tagsObject);
-
-    // Debug: Log connection state and sponsorship capabilities (development only)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Dynamic connection state:', {
-        user: !!user,
-        primaryWallet: !!primaryWallet,
-        walletAddress: primaryWallet?.address ? `${primaryWallet.address.slice(0, 6)}...${primaryWallet.address.slice(-4)}` : null,
-        walletConnector: primaryWallet?.connector?.name,
-        sponsorshipCapabilities: capabilities,
-        sponsorshipMessage: getSponsorshipMessage()
-      });
-    }
+    const encodedData = prepareEncodedData(formData.chain_id as string, tagsObject, attestationNetworkId);
 
     // Check if Dynamic wallet is connected (in connect-only mode, user might be null)
     if (!primaryWallet) {
@@ -112,42 +118,33 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
     }
 
     try {
-      // Switch to Base network using Dynamic
-      await switchToBaseNetwork(primaryWallet);
+      // Switch to the selected attestation network using Dynamic
+      await switchToAttestationNetwork(primaryWallet, attestationNetworkId);
 
-      // Check if we can use sponsored transactions
+      // Check if we can use sponsored transactions (only available on Base networks)
       const canUseSponsored = await canUseSponsoredTransaction(primaryWallet);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Can use sponsored transaction:', canUseSponsored);
-      }
 
       let newAttestationUID;
 
       if (canUseSponsored) {
         try {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Attempting sponsored transaction...');
-          }
           // Try sponsored transaction first
           const result = await createSponsoredAttestation(primaryWallet, {
-            schema: SCHEMA_UID,
+            schema: networkConfig.schemaUID,
             recipient: formData.address as string,
             expirationTime: BigInt(0),
             revocable: true,
             data: encodedData,
-          });
+          }, attestationNetworkId);
           
           newAttestationUID = result; // This might be different format for sponsored tx
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Sponsored transaction successful:', result);
-          }
         } catch (sponsoredError) {
           console.warn('Sponsored transaction failed, falling back to regular transaction:', sponsoredError);
           
           // Fall back to regular transaction
-          const { eas } = await initializeEAS(primaryWallet);
+          const { eas } = await initializeEAS(primaryWallet, attestationNetworkId);
           const tx = await eas.attest({
-            schema: SCHEMA_UID,
+            schema: networkConfig.schemaUID,
             data: {
               recipient: formData.address as string,
               expirationTime: BigInt(0),
@@ -158,13 +155,10 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
           newAttestationUID = await tx.wait();
         }
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Using regular transaction (sponsorship not available)');
-        }
         // Use regular transaction
-        const { eas } = await initializeEAS(primaryWallet);
+        const { eas } = await initializeEAS(primaryWallet, attestationNetworkId);
         const tx = await eas.attest({
-          schema: SCHEMA_UID,
+          schema: networkConfig.schemaUID,
           data: {
             recipient: formData.address as string,
             expirationTime: BigInt(0),
@@ -175,7 +169,7 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
         newAttestationUID = await tx.wait();
       }
 
-      showNotification(`Attestation created successfully! UID: ${newAttestationUID}`, "success");
+      showNotification(`Attestation created successfully on ${networkConfig.name}! UID: ${newAttestationUID}`, "success");
 
       // Reset form
       setFormData(initialFormState);
@@ -442,6 +436,7 @@ const AttestationForm: React.FC<AttestationFormProps> = ({ prefilledAddress, pre
                 required={field.required}
                 error={errors[field.id]}
                 isProjectDropdown={field.id === 'owner_project'}
+                isChainDropdown={field.id === 'chain_id'}
               />
             </div>
           )}

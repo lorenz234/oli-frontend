@@ -1,6 +1,6 @@
 // src/utils/attestationUtils.ts
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
-import { EAS_CONTRACT_ADDRESS, SCHEMA_DEFINITION } from '../constants/eas';
+import { getNetworkConfig, isSupportedAttestationChain, type SupportedChainId } from '../constants/eas';
 import { getWeb3Provider, getSigner } from '@dynamic-labs/ethers-v6';
 import { encodeFunctionData } from 'viem';
 
@@ -8,7 +8,10 @@ export const prepareTags = (formData: Record<string, any>) => {
   const tagsObject: { [key: string]: any } = {};
   
   Object.entries(formData)
-    .filter(([key, value]) => key !== 'chain_id' && key !== 'address' && 
+    .filter(([key, value]) => 
+      key !== 'chain_id' && 
+      key !== 'address' && 
+      key !== 'attestation_network' && // Exclude attestation network from tags
       (value !== undefined && value !== '' && value !== null))
     .forEach(([key, value]) => {
       // Convert specific fields to integers
@@ -58,8 +61,13 @@ export const prepareTags = (formData: Record<string, any>) => {
   return tagsObject;
 };
 
-export const prepareEncodedData = (chain_id: string, tagsObject: Record<string, any>) => {
-  const schemaEncoder = new SchemaEncoder(SCHEMA_DEFINITION);
+export const prepareEncodedData = (chain_id: string, tagsObject: Record<string, any>, attestationChainId?: number) => {
+  // Use the schema definition from the network config if available
+  const schemaDefinition = attestationChainId 
+    ? getNetworkConfig(attestationChainId).schemaDefinition 
+    : getNetworkConfig(8453).schemaDefinition; // Default to Base
+  
+  const schemaEncoder = new SchemaEncoder(schemaDefinition);
   
   return schemaEncoder.encodeData([
     { name: 'chain_id', value: chain_id, type: 'string' },
@@ -67,17 +75,22 @@ export const prepareEncodedData = (chain_id: string, tagsObject: Record<string, 
   ]);
 };
 
-export const switchToBaseNetwork = async (primaryWallet: any) => {
+export const switchToAttestationNetwork = async (primaryWallet: any, chainId: SupportedChainId) => {
   try {
-    // For Dynamic wallets, switch to Base network (chain ID 8453)
-    await primaryWallet.switchNetwork(8453);
+    await primaryWallet.switchNetwork(chainId);
   } catch (switchError: any) {
-    console.error('Failed to switch to Base network:', switchError);
-    throw new Error('Failed to switch to Base network. Please switch manually in your wallet.');
+    const networkConfig = getNetworkConfig(chainId);
+    console.error(`Failed to switch to ${networkConfig.name}:`, switchError);
+    throw new Error(`Failed to switch to ${networkConfig.name}. Please switch manually in your wallet.`);
   }
 };
 
-export const initializeEAS = async (primaryWallet: any) => {
+// Legacy function for backward compatibility
+export const switchToBaseNetwork = async (primaryWallet: any) => {
+  return switchToAttestationNetwork(primaryWallet, 8453);
+};
+
+export const initializeEAS = async (primaryWallet: any, chainId?: SupportedChainId) => {
   // Use Dynamic's ethers integration to get provider and signer
   const provider = await getWeb3Provider(primaryWallet);
   const signer = await getSigner(primaryWallet);
@@ -86,14 +99,32 @@ export const initializeEAS = async (primaryWallet: any) => {
     throw new Error('Failed to get provider or signer from Dynamic wallet');
   }
   
+  // Get the correct EAS contract address for the network
+  // If no chainId provided, get it from the wallet
+  let easContractAddress: string;
+  if (chainId) {
+    easContractAddress = getNetworkConfig(chainId).easContractAddress;
+  } else {
+    // Get current chain ID from wallet
+    const walletClient = await primaryWallet.getWalletClient();
+    const currentChainId = await walletClient.getChainId();
+    
+    if (!isSupportedAttestationChain(currentChainId)) {
+      throw new Error(`Current network (Chain ID: ${currentChainId}) is not supported for attestations`);
+    }
+    
+    easContractAddress = getNetworkConfig(currentChainId).easContractAddress;
+  }
+  
   // Initialize EAS SDK
-  const eas = new EAS(EAS_CONTRACT_ADDRESS, provider as unknown as any);
+  const eas = new EAS(easContractAddress, provider as unknown as any);
   eas.connect(signer);
   
   return { eas, signer, provider };
 };
 
 // Check if sponsored transactions are available (async to get real chain ID)
+// Note: Coinbase paymaster only works on Base networks
 export const canUseSponsoredTransaction = async (primaryWallet: any): Promise<boolean> => {
   if (!primaryWallet) return false;
   
@@ -110,34 +141,23 @@ export const canUseSponsoredTransaction = async (primaryWallet: any): Promise<bo
     // Get actual chain ID from wallet client
     const walletClient = await primaryWallet.getWalletClient();
     const chainId = await walletClient.getChainId();
-    const isOnBase = chainId === 8453; // Base chain ID
+    const isOnBaseNetwork = BASE_CHAIN_IDS.includes(chainId);
     
-    // Debug logging (development only)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Sponsorship check:', {
-        isCoinbaseSmartWallet,
-        chainId,
-        isOnBase,
-        canSponsor: isCoinbaseSmartWallet && isOnBase
-      });
-    }
-    
-    return isCoinbaseSmartWallet && isOnBase;
+    return isCoinbaseSmartWallet && isOnBaseNetwork;
   } catch (error) {
-    // Log error in development, generic message in production
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Failed to check sponsorship capabilities:', error);
-    } else {
-      console.error('Failed to check sponsorship capabilities');
-    }
+    console.error('Failed to check sponsorship capabilities:', error);
     return false;
   }
 };
 
-// Coinbase Paymaster configuration
+// Coinbase Paymaster configuration (only works on Base networks)
 const COINBASE_PAYMASTER_URL = process.env.NEXT_PUBLIC_COINBASE_PAYMASTER_URL || 'https://api.developer.coinbase.com/rpc/v1/base/hyKHUTPE7kd0VnvFqYsMiAUjvg1wshR3';
 
+// Base network chain IDs that support Coinbase paymaster
+const BASE_CHAIN_IDS = [8453, 84532]; // Base Mainnet and Base Sepolia
+
 // Create sponsored attestation using Wagmi sendCalls
+// Note: This only works on Base networks with Coinbase Smart Wallet
 export const createSponsoredAttestation = async (
   primaryWallet: any, 
   attestationData: {
@@ -146,14 +166,22 @@ export const createSponsoredAttestation = async (
     expirationTime: bigint;
     revocable: boolean;
     data: string;
-  }
+  },
+  chainId?: SupportedChainId
 ) => {
   if (!(await canUseSponsoredTransaction(primaryWallet))) {
     throw new Error('Sponsored transactions not available for this wallet/network');
   }
 
-  // Get wallet client for sendCalls
+  // Get the EAS contract address for the current network
   const walletClient = await primaryWallet.getWalletClient();
+  const currentChainId = chainId || await walletClient.getChainId();
+  
+  if (!isSupportedAttestationChain(currentChainId)) {
+    throw new Error(`Unsupported network for attestations: ${currentChainId}`);
+  }
+  
+  const easContractAddress = getNetworkConfig(currentChainId).easContractAddress;
   
   // Encode the EAS attest function call
   const encodedData = encodeFunctionData({
@@ -199,7 +227,7 @@ export const createSponsoredAttestation = async (
   try {
     const result = await walletClient.sendCalls({
       calls: [{
-        to: EAS_CONTRACT_ADDRESS,
+        to: easContractAddress,
         data: encodedData,
         value: BigInt(0)
       }],
@@ -212,18 +240,13 @@ export const createSponsoredAttestation = async (
     
     return result;
   } catch (error) {
-    // Log detailed error in development, generic in production
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Sponsored transaction failed:', error);
-      throw error;
-    } else {
-      console.error('Sponsored transaction failed');
-      throw new Error('Transaction failed to process');
-    }
+    console.error('Sponsored transaction failed:', error);
+    throw error;
   }
 };
 
 // Create sponsored bulk attestation using Wagmi sendCalls
+// Note: This only works on Base networks with Coinbase Smart Wallet
 export const createSponsoredBulkAttestation = async (
   primaryWallet: any, 
   attestationsData: Array<{
@@ -232,14 +255,22 @@ export const createSponsoredBulkAttestation = async (
     revocable: boolean;
     data: string;
   }>,
-  schemaUID: string
+  schemaUID: string,
+  chainId?: SupportedChainId
 ) => {
   if (!(await canUseSponsoredTransaction(primaryWallet))) {
     throw new Error('Sponsored transactions not available for this wallet/network');
   }
 
-  // Get wallet client for sendCalls
+  // Get the EAS contract address for the current network
   const walletClient = await primaryWallet.getWalletClient();
+  const currentChainId = chainId || await walletClient.getChainId();
+  
+  if (!isSupportedAttestationChain(currentChainId)) {
+    throw new Error(`Unsupported network for attestations: ${currentChainId}`);
+  }
+  
+  const easContractAddress = getNetworkConfig(currentChainId).easContractAddress;
   
   // Encode the EAS multiAttest function call
   const encodedData = encodeFunctionData({
@@ -285,7 +316,7 @@ export const createSponsoredBulkAttestation = async (
   try {
     const result = await walletClient.sendCalls({
       calls: [{
-        to: EAS_CONTRACT_ADDRESS,
+        to: easContractAddress,
         data: encodedData,
         value: BigInt(0)
       }],
@@ -298,13 +329,7 @@ export const createSponsoredBulkAttestation = async (
     
     return result;
   } catch (error) {
-    // Log detailed error in development, generic in production
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Sponsored bulk transaction failed:', error);
-      throw error;
-    } else {
-      console.error('Sponsored bulk transaction failed');
-      throw new Error('Bulk transaction failed to process');
-    }
+    console.error('Sponsored bulk transaction failed:', error);
+    throw error;
   }
 };

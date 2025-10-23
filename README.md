@@ -16,6 +16,7 @@ Open Labels Initiative (OLI) is built on three core pillars:
 - **Attest** - Contribute to the ecosystem by creating attestations for blockchain addresses
 - **Analytics** - View statistics, leaderboards of attestors, and explore attestation distribution
 
+
 ## Technology Stack
 
 - **Frontend**: Next.js 15, React 19, TailwindCSS 3
@@ -75,9 +76,20 @@ Open Labels Initiative (OLI) is built on three core pillars:
 
 ## Blockchain Integration
 
-The application integrates with the Ethereum Attestation Service (EAS) on Base network. Attestations use a standardized schema with the UID:
+The application integrates with the Ethereum Attestation Service (EAS) on Base network and optionaly Arbitrum. Attestations use a standardized schema with the UID:
 ```
 0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68
+```
+
+### Arbitrum Orbit Chains Integration
+
+OLI automatically syncs and supports all mainnet Arbitrum Orbit chains. The system:
+- Fetches chain data monthly from the [Arbitrum Portal API](https://portal-data.arbitrum.io/__auto-generated-orbitChains.json)
+
+**Quick Setup:**
+```bash
+# Fetch Orbit chains for the first time
+npm run sync-orbit-chains
 ```
 
 ## Contributing

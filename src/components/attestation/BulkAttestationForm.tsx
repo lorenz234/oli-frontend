@@ -10,10 +10,10 @@ import { Trash2, Plus, Upload, Download, Save, X } from 'lucide-react';
 
 // Import shared constants and utilities
 import { CHAIN_OPTIONS } from '../../constants/chains';
-import { SCHEMA_UID } from '../../constants/eas';
+import { getNetworkConfig, isSupportedAttestationChain } from '../../constants/eas';
 import { VALID_CATEGORY_IDS } from '../../constants/categories';
 import { validateAddress, validateChain, validateCategory, validateBoolean } from '../../utils/validation';
-import { prepareTags, prepareEncodedData, switchToBaseNetwork, initializeEAS, canUseSponsoredTransaction, createSponsoredBulkAttestation } from '../../utils/attestationUtils';
+import { prepareTags, prepareEncodedData, switchToAttestationNetwork, initializeEAS, canUseSponsoredTransaction, createSponsoredBulkAttestation } from '../../utils/attestationUtils';
 import { NotificationType, ConfirmationData, RowData, ColumnDefinition, AttestationResult, FieldValue, ValidationWarning } from '../../types/attestation';
 import { parseAndCleanCsv } from '../../utils/csvUtils';
 import { formFields } from '../../constants/formFields';
@@ -85,7 +85,15 @@ const BASE_COLUMNS: ColumnDefinition[] = [
   },
 ];
 
-const BulkAttestationForm: React.FC = () => {
+interface BulkAttestationFormProps {
+  enableNetworkSelection?: boolean; // When false, always uses Base network
+  selectedAttestationNetwork?: number; // Network selected at page level
+}
+
+const BulkAttestationForm: React.FC<BulkAttestationFormProps> = ({ 
+  enableNetworkSelection = false, // Default to simple Base workflow
+  selectedAttestationNetwork = 8453 // Default to Base
+}) => {
   const [rows, setRows] = useState<RowData[]>([{ ...EMPTY_ROW }]);
   
   // Dynamic wallet integration
@@ -621,8 +629,20 @@ const BulkAttestationForm: React.FC = () => {
         return;
       }
 
-      // Switch to Base network using Dynamic
-      await switchToBaseNetwork(primaryWallet);
+      // Determine which network to use
+      // In advanced mode: use the network selected at page level
+      // In simple mode: always use Base Mainnet
+      const targetNetworkId = enableNetworkSelection ? selectedAttestationNetwork : 8453;
+      
+      // Validate that the target network is supported
+      if (!isSupportedAttestationChain(targetNetworkId)) {
+        throw new Error(`Unsupported network for attestations: ${targetNetworkId}`);
+      }
+      
+      const networkConfig = getNetworkConfig(targetNetworkId);
+      
+      // Switch to the selected attestation network using Dynamic
+      await switchToAttestationNetwork(primaryWallet, targetNetworkId);
 
       // Prepare attestation data
       interface AttestationData {
@@ -642,12 +662,7 @@ const BulkAttestationForm: React.FC = () => {
       for (const row of validRows) {
         // Create tags_json object
         const tagsObject = prepareTags(row);
-        
-        console.log("Tags object:", tagsObject);
-        
-        const encodedData = prepareEncodedData(row.chain_id, tagsObject);
-        
-        console.log("Encoded data:", encodedData);
+        const encodedData = prepareEncodedData(row.chain_id, tagsObject, targetNetworkId);
 
         // Add to attestations array
         attestationsData.push({
@@ -658,64 +673,47 @@ const BulkAttestationForm: React.FC = () => {
         });
       }
 
-      console.log("Attestations data:", attestationsData);
-
       // Check if we can use sponsored transactions
       const canUseSponsored = await canUseSponsoredTransaction(primaryWallet);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Can use sponsored bulk transaction:', canUseSponsored);
-      }
 
       let attestationUIDs;
 
       if (canUseSponsored) {
         try {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Attempting sponsored bulk transaction...');
-          }
           // Try sponsored bulk transaction first
           const result = await createSponsoredBulkAttestation(
             primaryWallet,
             attestationsData,
-            SCHEMA_UID
+            networkConfig.schemaUID,
+            targetNetworkId
           );
           
           attestationUIDs = result; // This might be different format for sponsored tx
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Sponsored bulk transaction successful:', result);
-          }
         } catch (sponsoredError) {
           console.warn('Sponsored bulk transaction failed, falling back to regular transaction:', sponsoredError);
           
           // Fall back to regular transaction
-          const { eas } = await initializeEAS(primaryWallet);
+          const { eas } = await initializeEAS(primaryWallet, targetNetworkId);
           const tx = await eas.multiAttest([
             {
-              schema: SCHEMA_UID,
+              schema: networkConfig.schemaUID,
               data: attestationsData,
             }
           ]);
           
-          console.log("Regular transaction:", tx);
           attestationUIDs = await tx.wait();
-          console.log("Transaction receipt:", tx.receipt);
         }
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Using regular bulk transaction...');
-        }
         // Use regular transaction
-        const { eas } = await initializeEAS(primaryWallet);
+        const { eas } = await initializeEAS(primaryWallet, targetNetworkId);
         const tx = await eas.multiAttest([
           {
-            schema: SCHEMA_UID,
+            schema: networkConfig.schemaUID,
             data: attestationsData,
           }
         ]);
         
-        console.log("Regular transaction:", tx);
         attestationUIDs = await tx.wait();
-        console.log("Transaction receipt:", tx.receipt);
       }
       
       // Create results array for user feedback
@@ -727,7 +725,7 @@ const BulkAttestationForm: React.FC = () => {
 
       // Show results summary
       const successCount = results.filter(r => r.success).length;
-      showNotification(`${successCount} of ${results.length} attestations created successfully!`);
+      showNotification(`${successCount} of ${results.length} attestations created successfully on ${networkConfig.name}!`);
       
       // Reset form if all were successful
       if (successCount === results.length) {
@@ -1205,6 +1203,19 @@ const BulkAttestationForm: React.FC = () => {
               </button>
             </div>
           </div>
+          
+          {/* Network info banner - Only show in advanced mode */}
+          {enableNetworkSelection && (
+            <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">
+                <span className="font-semibold">Network:</span> All bulk attestations will be recorded on{' '}
+                <span className="font-semibold">{getNetworkConfig(selectedAttestationNetwork).name}</span>.
+                {selectedAttestationNetwork === 8453 || selectedAttestationNetwork === 84532 ? 
+                  ' Coinbase Smart Wallet users can use sponsored transactions (no gas fees).' : 
+                  ' Gas fees apply for this network.'}
+              </p>
+            </div>
+          )}
           
           <div className="mb-6">
             <p className="text-sm text-gray-600">
